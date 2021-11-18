@@ -47,3 +47,5 @@ getData_redcap <- function(api_token,uri,records,variables,col_types){
   redcap_final=bind_rows(pages)
   return(redcap_final)
 } # end function
+
+

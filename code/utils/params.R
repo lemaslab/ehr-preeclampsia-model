@@ -5,7 +5,7 @@
 # import variables
 n_max=1000000
 data_file_name="part_id.csv"
-data_dir=paste0("~/ehr-database/data/raw/part_id/")
+data_dir=paste0("~/ehr-preeclampsia-model/data/raw/part_id/")
 data_import_path=paste0(data_dir,data_file_name)
 
 # read data
