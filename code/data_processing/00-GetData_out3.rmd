@@ -1,0 +1,132 @@
+---
+title: "multiples - Get Report Data"
+author: "Dominick Lemas"
+date: "12/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        October 21, 2021
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073  
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+# PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
+# Note: vpn must be active
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+```
+
+
+```{r, message=FALSE}
+# Windows
+ source("~/ehr-preeclampsia-model/code/utils/utils.R")
+ source("~/ehr-preeclampsia-model/code/utils/params.R")
+ api_token=get_API_token("redcap_ehr2")
+
+# API and URL
+uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+rcon <- redcapConnection(url=uri, token=api_token)
+
+```
+
+```{r, message=FALSE}
+
+# cancer outcomes
+
+outcomes=c("651","652","O30","O30.0","O30.1",
+           "O30.2","O30.8","O30.9","O31")
+
+# redcap variables
+
+variables=c("part_id","perinatal_dx_date", "perinatal_dx_code", 
+            "perinatal_dx_descrip", "perinatal_dx_type", 
+            "perinatal_icd_code", "perinatal_dx_code_type")
+
+# column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      redcap_repeat_instance = readr::col_factor(),
+      perinatal_dx_date = readr::col_date(),
+      perinatal_dx_code	 = readr::col_factor(),
+      perinatal_dx_descrip  = readr::col_character(),
+      perinatal_dx_type = readr::col_factor(),
+      perinatal_icd_code = readr::col_factor(),
+      perinatal_dx_code_type = readr::col_factor()
+     )
+
+# participant records
+records=mom_list
+
+```
+
+```{r, message=FALSE}
+
+# pull data
+start_time = Sys.time()
+df=getData_redcap(api_token,uri,records,variables,col_types) %>%
+  filter(redcap_repeat_instrument=="diagnosis_codes") %>% as_tibble() 
+end_time = Sys.time()
+end_time - start_time
+
+
+```
+```{r, message=FALSE}
+
+# exploratory analysis
+
+ggplot(df, aes(x = cancer_dx_code)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+length(unique(df$part_id))
+
+# outcomes
+outcomes
+
+df2 %>%
+  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes, 1, 0))
+
+```
+
+```{r, message=FALSE}
+## EXPORT to Sharedrive
+
+# file name
+file_name="out1.rda"
+#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
+data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+data_path=paste0(data_directory,file_name)
+df %>% save(df, file=data_path)
+
+
+```
