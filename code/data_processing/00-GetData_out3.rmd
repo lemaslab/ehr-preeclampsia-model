@@ -90,13 +90,32 @@ records=mom_list
 
 # pull data
 start_time = Sys.time()
-df=getData_redcap(api_token,uri,records,variables,col_types) %>%
+df=getData_redcap(api_token,uri,records,variables,col_types)%>%
   filter(redcap_repeat_instrument=="diagnosis_codes") %>% as_tibble() 
 end_time = Sys.time()
 end_time - start_time
 
 
 ```
+
+```{r, message=FALSE}
+# atlternative data pull: changed the batch size to very small
+# pull data
+start_time = Sys.time()
+ redcap_data=redcap_read(batch_size=5, 
+                            redcap_uri=uri, 
+                            token=api_token,
+                            records=records,
+                            fields=variables,
+                            col_types=col_types)$data
+end_time = Sys.time()
+end_time - start_time
+
+length(unique(redcap_data$part_id))
+
+```
+
+
 ```{r, message=FALSE}
 
 # exploratory analysis
@@ -113,8 +132,10 @@ length(unique(df$part_id))
 # outcomes
 outcomes
 
-df2 %>%
-  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes, 1, 0))
+# create logic: 1= match %in% outcomes, 0= no match  
+df2= df %>%
+  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes, 1, 0)) %>%
+  count(multiple_logic)
 
 ```
 
