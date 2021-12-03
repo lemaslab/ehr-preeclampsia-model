@@ -1,7 +1,8 @@
 ---
-title: 'GetData-shinyApp'
-output:
-  html_document: default
+title: "getData: delivery"
+author: "Dominick Lemas & Hailey Ballard"
+date: "12/03/2021"
+output: html_document
 ---
 
 ```{r, include=FALSE}
@@ -10,9 +11,9 @@ output:
 # ***************                Project Overview              *************** #
 # **************************************************************************** #
 
-# Author:            Hailey Ballard 
+# Author:            Dominick Lemas & Hailey Ballard 
 # Start Date:        November 01, 2021 
-# Last Modified:     November 01, 2021 
+# Last Modified:     December 03, 2021 
 # IRB:               IRB protocol IRB201601899  
 #                    
 #
@@ -36,129 +37,69 @@ output:
 # ***************                Libraries                     *************** #
 # **************************************************************************** #
 
-library(readxl)
-library(tidyr)
-library(dplyr)
+library(keyringr)
 library(tidyverse)
-library(lubridate)
-library(stringr)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+library(plyr)
+library(ggplot2)
 
 ```
 
-```{r, include=FALSE, message=FALSE, warning=FALSE}
-# Data Processing Notes
+```{r, message=FALSE}
+# Windows
+ source("~/ehr-preeclampsia-model/code/utils/utils.R")
+ source("~/ehr-preeclampsia-model/code/utils/params.R")
+ api_token=get_API_token("redcap_ehr2")
 
-# IDR
-release_date="Fri 9/24/2021 9:47 AM"
-idr_analyst="Lei McDevitt"
-idr_analyst_email="leimcdevitt@ufl.edu"
-
-# Lemas Lab
-dataprocessing_date=format(Sys.time(), "%a %b %d %X %Y")
-lemaslab_analyst="Hailey Ballard"
-lemaslab_analyst_email="hballard@ufl.edu"
-lemaslab_code="ehr-preeclampsia-model/code/data_processing/"
+# API and URL
+uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+rcon <- redcapConnection(url=uri, token=api_token)
 
 ```
 
+```{r, message=FALSE}
 
-```{r, include=FALSE, message=FALSE, warning=FALSE}
+# redcap variables
 
-# **************************************************************************** #
-# ***************              mom-delivery                                             
-# **************************************************************************** #
-# rows:            28530
-# cols:            20 
-# unique mom id:   22075
-# repeat:          1
-# ICD9/10:         NA
+variables=c("part_id","gest_age_measure","gest_age","gest_age_units",
+            "mom_admit_age_measure","mom_admit_age_yr","mom_admit_age_yr_units")
 
+# column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      redcap_repeat_instance = readr::col_factor(),
+      gest_age_measure = readr::col_character(),
+      gest_age	 = readr::col_character(),
+      gest_age_units  = readr::col_character(),
+      mom_admit_age_measure = readr::col_character(),
+      mom_admit_age_yr = readr::col_character(),
+      mom_admit_age_yr_units = readr::col_character()
+     )
 
-# EXTRACT DATA FROM EXCEL Sheet #1
+# participant records
+records=mom_list
 
-n_max=1000000
-data_file_name="mom_delivery1.csv"
- data_dir=paste0("~/ehr-preeclampsia-model/data/raw/age_at_delivery/")
-#data_dir=paste0("Y:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/")
-data_import_path=paste0(data_dir,data_file_name)
-
-# read data
-age_at_delivery=read_csv(data_import_path, col_types = cols()) 
-
-
-age=age_at_delivery %>%
-  select(part_id,
-         mom_admit_age_yr,
-         delivery_admit_date)
-
-# Save mom-set1 as csv file
-write.csv(age, "~/ehr-preeclampsia-model/data/processed/age_at_delivery/mom1.csv", row.names = FALSE)
-
-# EXTRACT DATA FROM EXCEL Sheet #2
-
-n_max=1000000
-data_file_name="mom_delivery2.csv"
- data_dir=paste0("~/ehr-preeclampsia-model/data/raw/age_at_delivery/")
-#data_dir=paste0("Y:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/")
-data_import_path=paste0(data_dir,data_file_name)
-
-# read data
-age_at_delivery=read_csv(data_import_path, col_types = cols()) 
-
-
-age=age_at_delivery %>%
-  select(part_id,
-         mom_admit_age_yr,
-         delivery_admit_date)
-
-# Save mom-set1 as csv file
-write.csv(age, "~/ehr-preeclampsia-model/data/processed/age_at_delivery/mom2.csv", row.names = FALSE)
-
-# EXTRACT DATA FROM EXCEL Sheet #3
-
-n_max=1000000
-data_file_name="mom_delivery3.csv"
- data_dir=paste0("~/ehr-preeclampsia-model/data/raw/age_at_delivery/")
-#data_dir=paste0("Y:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/")
-data_import_path=paste0(data_dir,data_file_name)
-
-# read data
-age_at_delivery=read_csv(data_import_path, col_types = cols()) 
-
-
-age=age_at_delivery %>%
-  select(part_id,
-         mom_admit_age_yr,
-         delivery_admit_date)
-
-# Save mom-set1 as csv file
-write.csv(age, "~/ehr-preeclampsia-model/data/processed/age_at_delivery/mom3.csv", row.names = FALSE)
 ```
 
-#### __Data Summary__
-Electronic health record (EHR) data were released from the UF Integrated Data Repository (IDR) by `r idr_analyst` on `r release_date` which includes Protected Health Information and are provided to you at your request and are intended solely for use in the research approved by IRB protocol IRB201601899. The data represents the cohort of patients presenting to University of Florida who had a baby delivery between June, 2011 and September, 2021. Note: this study required 25 hours of analyst time. The data are released to you in your role for this study as described in your IRB documents. Please ensure that appropriate safeguards as described in UF Health and/or University of Florida policies are implemented to protect the integrity of the PHI.
+```{r, message=FALSE}
+# This data pull works: changed the batch size to very small
 
-#### __Data Processing Overview__
-Data processing was completed by `r lemaslab_analyst` on `r dataprocessing_date`. 
+start_time = Sys.time()
+ redcap_data=redcap_read(batch_size=5, 
+                            redcap_uri=uri, 
+                            token=api_token,
+                            records=records,
+                            fields=variables,
+                            col_types=col_types)$data
+end_time = Sys.time()
+end_time - start_time
 
-The code is available on private github repo @: `r lemaslab_code`
+length(unique(redcap_data$part_id))
 
-The raw data is stored on UF/HOBI sharedrive: `r data_dir`
+df=redcap_data
 
-The processed data is stored on UF/HOBI sharedrive: `r output_dir`
-
-![](data_processing_workflow.png)
-
-#### __Data Processing Statistics__
-
-The raw data contains `r dim(delivery)[1]` rows and `r dim(delivery)[2]` columns. There are `r length(unique(newdata$mom_id))` unique mom-ids. 
-
-The names of column variables includes: `r names(data_ready)`
-
-The processed data included `r length(chunks)` files with `r format(batchSize, scientific = F, digits = 0)` rows within each file.
-
-##### __CTSI/NIH Grant Information__
-
-In accordance with NIH requirements, all publications, presentations and proposals supported in whole or in part by the UF CTSI or its services must cite the appropriate NIH grant number(s). When using data and services from the IDR, please use the following citation language.
-
-We acknowledge the University of Florida Integrated Data Repository (IDR) and the UF Health Office of the Chief Data Officer for providing the analytic data set for this project. Additionally, the Research reported in this publication was supported by the National Center for Advancing Translational Sciences of the National Institutes of Health under University of Florida Clinical and Translational Science Awards UL1 TR000064 and UL1TR001427. The content of this publication, presentation and/or proposal is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health.
+```
