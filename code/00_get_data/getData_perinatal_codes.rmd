@@ -141,3 +141,28 @@ df %>% save(df, file=data_export_path)
 
 
 ```
+
+```{r, message=FALSE}
+
+# what codes do we have in redcap dataset?
+
+# import data
+file_name="mom_perinatal_codes.rda"
+data_import_directory=paste0("~/ehr-preeclampsia-model/data/processed/")  
+data_import_path=paste0(data_import_directory,file_name)
+load(file=data_import_path)
+
+# select codes
+
+codes=df %>%
+  select(perinatal_dx_code) %>% unique()
+  
+# export unique codes
+
+data_file_name_export="mom_perinatal.csv"
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/output/medical_codes/")
+data_export_path=paste0(output_dir,data_file_name_export)
+write.table(codes,data_export_path,row.names=F,na = "", sep=",")
+
+
+```
