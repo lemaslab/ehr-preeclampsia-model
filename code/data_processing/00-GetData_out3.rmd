@@ -120,7 +120,9 @@ length(unique(redcap_data$part_id))
 
 # exploratory analysis
 
-ggplot(df, aes(x = cancer_dx_code)) +
+df=redcap_data
+
+ggplot(df, aes(x = perinatal_dx_code)) +
   geom_bar()
 
 ```
@@ -133,9 +135,8 @@ length(unique(df$part_id))
 outcomes
 
 # create logic: 1= match %in% outcomes, 0= no match  
-df2= df %>%
-  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes, 1, 0)) %>%
-  count(multiple_logic)
+df2 = df %>%
+  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes, 1, 0)) 
 
 ```
 
