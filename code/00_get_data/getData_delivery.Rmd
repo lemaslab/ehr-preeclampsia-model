@@ -100,6 +100,18 @@ end_time - start_time
 
 length(unique(redcap_data$part_id))
 
-df=redcap_data
+df=redcap_data %>%
+  filter(redcap_repeat_instrument == "delivery") %>% as_tibble()
+
+```
+
+```{r, message=FALSE}
+## EXPORT to Sharedrive
+
+# file name
+file_name="delivery.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+df %>% save(df, file=data_export_path)
 
 ```
