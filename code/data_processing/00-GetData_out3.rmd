@@ -86,21 +86,10 @@ records=mom_list
 
 ```
 
-```{r, message=FALSE}
-
-# pull data
-start_time = Sys.time()
-df=getData_redcap(api_token,uri,records,variables,col_types)%>%
-  filter(redcap_repeat_instrument=="diagnosis_codes") %>% as_tibble() 
-end_time = Sys.time()
-end_time - start_time
-
-
-```
 
 ```{r, message=FALSE}
-# atlternative data pull: changed the batch size to very small
-# pull data
+# This data pull works: changed the batch size to very small
+
 start_time = Sys.time()
  redcap_data=redcap_read(batch_size=5, 
                             redcap_uri=uri, 
@@ -113,14 +102,14 @@ end_time - start_time
 
 length(unique(redcap_data$part_id))
 
+df=redcap_data
+
 ```
 
 
 ```{r, message=FALSE}
 
 # exploratory analysis
-
-df=redcap_data
 
 ggplot(df, aes(x = perinatal_dx_code)) +
   geom_bar()
@@ -144,11 +133,11 @@ df2 = df %>%
 ## EXPORT to Sharedrive
 
 # file name
-file_name="out1.rda"
-#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
-data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
-data_path=paste0(data_directory,file_name)
-df %>% save(df, file=data_path)
+file_name="mom_perinatal_codes.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+# data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_check/")
+data_export_path=paste0(data_export_directory,file_name)
+df %>% save(df, file=data_export_path)
 
 
 ```
