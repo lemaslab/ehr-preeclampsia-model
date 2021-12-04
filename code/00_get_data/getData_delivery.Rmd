@@ -81,7 +81,7 @@ col_types <- readr::cols(
      )
 
 # participant records
-records=mom_list
+records=baby_list
 
 ```
 
@@ -94,14 +94,13 @@ start_time = Sys.time()
                             token=api_token,
                             records=records,
                             fields=variables,
-                            col_types=col_types)$data
+                            col_types=col_types)$data %>% drop_na() %>% as_tibble()
 end_time = Sys.time()
 end_time - start_time
 
 length(unique(redcap_data$part_id))
 
-df=redcap_data %>%
-  filter(redcap_repeat_instrument == "delivery") %>% as_tibble()
+df=redcap_data 
 
 ```
 
