@@ -106,7 +106,8 @@ end_time - start_time
 
 length(unique(redcap_data$part_id))
 
-df=redcap_data
+df=redcap_data %>%
+  drop_na()
 
 ```
 
