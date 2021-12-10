@@ -1,0 +1,171 @@
+---
+title: "getData: perinatal-codes-baby"
+author: "Dominick Lemas"
+date: "12/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        October 21, 2021
+# Modified:    December 09, 2021
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073  
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+# PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
+# Note: vpn must be active
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+```
+
+
+```{r, message=FALSE}
+# Windows
+ source("~/ehr-preeclampsia-model/code/utils/utils.R")
+ source("~/ehr-preeclampsia-model/code/utils/params.R")
+ api_token=get_API_token("redcap_ehr2")
+
+# API and URL
+uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+rcon <- redcapConnection(url=uri, token=api_token)
+
+```
+
+```{r, message=FALSE}
+# codes: pre-eclampsia
+
+outcomes=c("651","652","O30","O30.0","O30.1",
+           "O30.2","O30.8","O30.9","O31")
+
+```
+
+```{r, message=FALSE}
+
+# variables: perinatal diagnosis codes
+
+variables=c("part_id","perinatal_dx_date", "perinatal_dx_code", 
+            "perinatal_dx_descrip", "perinatal_dx_type", 
+            "perinatal_icd_code", "perinatal_dx_code_type")
+
+# column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      redcap_repeat_instance = readr::col_factor(),
+      perinatal_dx_date = readr::col_date(),
+      perinatal_dx_code	 = readr::col_factor(),
+      perinatal_dx_descrip  = readr::col_character(),
+      perinatal_dx_type = readr::col_factor(),
+      perinatal_icd_code = readr::col_factor(),
+      perinatal_dx_code_type = readr::col_factor()
+     )
+
+# participant records
+records=baby_list
+
+```
+
+
+```{r, message=FALSE}
+# This data pull works: changed the batch size to very small
+
+start_time = Sys.time()
+ redcap_data=redcap_read(batch_size=5, 
+                            redcap_uri=uri, 
+                            token=api_token,
+                            records=records,
+                            fields=variables,
+                            col_types=col_types)$data
+end_time = Sys.time()
+end_time - start_time
+
+length(unique(redcap_data$part_id))
+
+df=redcap_data
+
+```
+
+
+```{r, message=FALSE}
+
+# exploratory analysis
+
+ggplot(df, aes(x = perinatal_dx_code)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+length(unique(df$part_id))
+
+# outcomes
+outcomes
+
+# create logic: 1= match %in% outcomes, 0= no match  
+df2 = df %>%
+  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes, 1, 0)) 
+
+```
+
+```{r, message=FALSE}
+## EXPORT to Sharedrive
+
+# file name
+file_name="mom_perinatal_codes.rda"
+# data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+data_export_path=paste0(data_export_directory,file_name)
+df %>% save(df, file=data_export_path)
+
+```
+
+```{r, message=FALSE}
+
+# what codes do we have in redcap dataset?
+
+# import data
+file_name="mom_perinatal_codes.rda"
+data_import_directory=paste0("~/ehr-preeclampsia-model/data/processed/")  
+data_import_path=paste0(data_import_directory,file_name)
+load(file=data_import_path)
+
+# select codes
+
+codes=df %>%
+  select(perinatal_dx_code) %>% unique()
+  
+# export unique codes
+
+data_file_name_export="mom_perinatal.csv"
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/output/medical_codes/")
+data_export_path=paste0(output_dir,data_file_name_export)
+write.table(codes,data_export_path,row.names=F,na = "", sep=",")
+
+
+```

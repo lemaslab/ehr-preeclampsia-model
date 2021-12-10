@@ -1,0 +1,116 @@
+---
+title: "getData: delivery"
+author: "Dominick Lemas & Hailey Ballard"
+date: "12/03/2021"
+output: html_document
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick Lemas & Hailey Ballard 
+# Start Date:        November 01, 2021 
+# Last Modified:     December 03, 2021 
+# IRB:               IRB protocol IRB201601899  
+#                    
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073 
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+#  (1) Descriptive statistics on IDR data. 
+#  (2) Process IDR data. 
+#  (3) Outputs for downstream import-ready files for RedCap. 
+
+
+```
+
+```{r, include=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                Libraries                     *************** #
+# **************************************************************************** #
+
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+
+```
+
+```{r, message=FALSE}
+# Windows
+ source("~/ehr-preeclampsia-model/code/utils/utils.R")
+ source("~/ehr-preeclampsia-model/code/utils/params.R")
+ api_token=get_API_token("redcap_ehr2")
+
+# API and URL
+uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+rcon <- redcapConnection(url=uri, token=api_token)
+
+```
+
+```{r, message=FALSE}
+
+# redcap variables
+
+variables=c("part_id","gest_age_measure","gest_age","gest_age_units",
+            "mom_admit_age_measure","mom_admit_age_yr","mom_admit_age_yr_units")
+
+# column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      redcap_repeat_instance = readr::col_factor(),
+      gest_age_measure = readr::col_character(),
+      gest_age	 = readr::col_character(),
+      gest_age_units  = readr::col_character(),
+      mom_admit_age_measure = readr::col_character(),
+      mom_admit_age_yr = readr::col_character(),
+      mom_admit_age_yr_units = readr::col_character()
+     )
+
+# participant records
+records=baby_list
+
+```
+
+```{r, message=FALSE}
+# This data pull works: changed the batch size to very small
+
+start_time = Sys.time()
+ redcap_data=redcap_read(batch_size=5, 
+                            redcap_uri=uri, 
+                            token=api_token,
+                            records=records,
+                            fields=variables,
+                            col_types=col_types)$data %>% drop_na() %>% as_tibble()
+end_time = Sys.time()
+end_time - start_time
+
+length(unique(redcap_data$part_id))
+
+df=redcap_data 
+
+```
+
+```{r, message=FALSE}
+## EXPORT to Sharedrive
+
+# file name
+file_name="delivery.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+df %>% save(df, file=data_export_path)
+
+```

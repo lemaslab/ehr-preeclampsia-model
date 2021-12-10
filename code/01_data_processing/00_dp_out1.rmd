@@ -1,5 +1,5 @@
 ---
-title: "01 - Get Report Data"
+title: "Get Data: outcome 1"
 author: "Hailey Ballard"
 date: "10/21/2021"
 output: html_document
@@ -112,6 +112,5 @@ file_name="out1.rda"
 data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_path=paste0(data_directory,file_name)
 df %>% save(df, file=data_path)
-
 
 ```
