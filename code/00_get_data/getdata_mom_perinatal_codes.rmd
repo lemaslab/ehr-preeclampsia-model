@@ -55,13 +55,16 @@ rcon <- redcapConnection(url=uri, token=api_token)
 ```
 
 ```{r, message=FALSE}
-
-# cancer outcomes
+# codes: pre-eclampsia
 
 outcomes=c("651","652","O30","O30.0","O30.1",
            "O30.2","O30.8","O30.9","O31")
 
-# redcap variables
+```
+
+```{r, message=FALSE}
+
+# variables: perinatal diagnosis codes
 
 variables=c("part_id","perinatal_dx_date", "perinatal_dx_code", 
             "perinatal_dx_descrip", "perinatal_dx_type", 
@@ -134,11 +137,10 @@ df2 = df %>%
 
 # file name
 file_name="mom_perinatal_codes.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
-# data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_check/")
+# data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_export_path=paste0(data_export_directory,file_name)
 df %>% save(df, file=data_export_path)
-
 
 ```
 
