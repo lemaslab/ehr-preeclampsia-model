@@ -47,9 +47,20 @@ library(ggplot2)
  source("~/ehr-preeclampsia-model/data/processed/mom_perinatal_codes.rda")
 ```
 
+Filter Individuals with ANY PE diagnosis
+```{r, message=FALSE}
+outcomes_pe=c("642.7", "O14.05", "O14.95", "642.71", "O11.4", "O11.9", "O14.90", "O11.3", "642.41", "O11.2", "O14.93", "642.44", "642.4", "643.73", "642.43", "642.4", "642.7", "O14.02", "642.73", "O11.3", "O14.03", "O14.04", "O11.5", "642.42", "014.94", "O14.00", "O14.10", "O14.12", "O14.13", "O14.14", "O14.15", "642.50", "642.5", "642.51", "642.52", "642.53", "642.54")
+
+length(unique(df$part_id))
+
+df_filtered = df %>%
+  filter(perinatal_dx_code %in% outcomes_pe)
+
+```
+
 Output 2 - Severe PE 
 ```{r, message=FALSE}
-#Code 1=Severe PE, 0= No Severe PE
+#Code 1=Severe PE, 0= Mild PE
 
 outcomes_severepe=c("O14.10", "O14.12", "O14.13", "O14.14", "O14.15", "642.50", "642.5", "642.51", "642.52", "642.53", "642.54")
 
