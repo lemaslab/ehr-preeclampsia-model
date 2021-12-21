@@ -49,13 +49,21 @@ library(ggplot2)
 
 Filter Individuals with ANY PE diagnosis
 ```{r, message=FALSE}
-outcomes_pe=c("642.7", "O14.05", "O14.95", "642.71", "O11.4", "O11.9", "O14.90", "O11.3", "642.41", "O11.2", "O14.93", "642.44", "642.4", "643.73", "642.43", "642.4", "642.7", "O14.02", "642.73", "O11.3", "O14.03", "O14.04", "O11.5", "642.42", "014.94", "O14.00", "O14.10", "O14.12", "O14.13", "O14.14", "O14.15", "642.50", "642.5", "642.51", "642.52", "642.53", "642.54")
+outcomes_pe=c("642.7", "O14.05", "O14.95", "642.df$f71", "O11.4", "O11.9", "O14.90", "O11.3", "642.41", "O11.2", "O14.93", "642.44", "642.4", "643.73", "642.43", "642.4", "642.7", "O14.02", "642.73", "O11.3", "O14.03", "O14.04", "O11.5", "642.42", "014.94", "O14.00", "O14.10", "O14.12", "O14.13", "O14.14", "O14.15", "642.50", "642.5", "642.51", "642.52", "642.53", "642.54")
 
 length(unique(df$part_id))
 
+#Create new dataframe containing moms with any PE diagnosis
 df_filtered = df %>%
   filter(perinatal_dx_code %in% outcomes_pe)
 
+#create list of all unique mom IDs with any PE diagnosis
+unique_moms=unique(df_filtered$part_id)
+
+
+#filter original dataset for only participant IDs from the unique_moms list
+df_filtered_pe=df%>%
+  filter(part_id %in% unique_moms)
 ```
 
 Output 2 - Severe PE 
@@ -64,35 +72,18 @@ Output 2 - Severe PE
 
 outcomes_severepe=c("O14.10", "O14.12", "O14.13", "O14.14", "O14.15", "642.50", "642.5", "642.51", "642.52", "642.53", "642.54")
 
-length(unique(df$part_id))
+length(unique(df_filtered_pe$part_id))
 
 # outcomes
 outcomes_severepe
 
 # create logic: 1= match %in% outcomes, 0= no match  
-df2 = df %>%
+df_filtered_pe = df_filtered_pe %>%
   mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes_severepe, 1, 0)) 
 
-names(df2)[names(df2) == "multiple_logic"] <- "severe_pe"
+names(df_filtered_pe)[names(df_filtered_pe) == "multiple_logic"] <- "severe_pe"
 ```
 
-Output 2 - Mild PE
-```{r, message=FALSE}
-#Code 1= Mild PE, 0=No Mild PE
-
-outcomes_mildpe=c("642.7", "O14.05", "O14.95", "642.71", "O11.4", "O11.9", "O14.90", "O11.3", "642.41", "O11.2", "O14.93", "642.44", "642.4", "643.73", "642.43", "642.4", "642.7", "O14.02", "642.73", "O11.3", "O14.03", "O14.04", "O11.5", "642.42", "014.94", "O14.00")
-
-length(unique(df$part_id))
-
-# outcomes
-outcomes_mildpe
-
-# create logic: 1= match %in% outcomes, 0= no match  
-df2 = df2 %>%
-  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes_mildpe, 1, 0)) 
-
-names(df2)[names(df2) == "multiple_logic"] <- "mild_pe"
-```
 
 Output 3 - Multiples
 ```{r, message=FALSE}
@@ -100,20 +91,20 @@ Output 3 - Multiples
 outcomes_multiples=c("651","652","O30","O30.0","O30.1",
            "O30.2","O30.8","O30.9","O31")
 
-length(unique(df$part_id))
+length(unique(df_filtered_pe$part_id))
 
 # outcomes
 outcomes_multiples
 
 # create logic: 1= match %in% outcomes, 0= no match  
-df2 = df2 %>%
+df_filtered_pe = df_filtered_pe %>%
   mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes_multiples, 1, 0)) 
 
-names(df2)[names(df2) == "multiple_logic"] <- "multiples"
+names(df_filtered_pe)[names(df_filtered_pe) == "multiple_logic"] <- "multiples"
 ```
 
 
-Output 6 - Uncomplicated Hypertension
+Output 6 - Uncomplicated Hypertension (In progress)
 ```{r, message=FALSE}
 
 outcomes_hypertension=c()
@@ -127,6 +118,6 @@ outcomes_multiples
 df2 = df2 %>%
   mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes_multiples, 1, 0)) 
 
-names(df2)[names(df2) == "multiple_logic"] <- "multiples"
+names(df2)[names(df2) == "multiple_logic"] <- "hypertension"
 ```
 
