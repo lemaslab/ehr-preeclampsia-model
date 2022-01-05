@@ -36,7 +36,7 @@ getData_redcap <- function(api_token,uri,records,variables,col_types){
   pages <- list()
   
   for(i in 1:length(chunks)){
-    redcap_data=redcap_read(batch_size=200, 
+    redcap_data=redcap_read(batch_size=5, 
                             redcap_uri=uri, 
                             token=api_token,
                             records=chunks[[i]],
