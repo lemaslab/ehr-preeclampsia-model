@@ -53,11 +53,6 @@ library(stringr)
 # unique baby id:  28530
 # unique mom id:   22075
 
-
-# variables
-# part_id, mmom_id, baby_id
-
-
 # EXTRACT DATA FROM EXCEL
 
 # import variables
