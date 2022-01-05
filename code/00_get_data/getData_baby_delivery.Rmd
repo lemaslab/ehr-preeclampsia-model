@@ -63,8 +63,9 @@ rcon <- redcapConnection(url=uri, token=api_token)
 
 # redcap variables
 
-variables=c("part_id","gest_age_measure","gest_age","gest_age_units",
-            "mom_admit_age_measure","mom_admit_age_yr","mom_admit_age_yr_units")
+variables=c("part_id","part_dob","gest_age_measure","gest_age","gest_age_units",
+            "mom_admit_age_measure","mom_admit_age_yr","mom_admit_age_yr_units",
+            "gravidity","parity","delivery_admit_date")
 
 # column types.
 col_types <- readr::cols(
@@ -72,12 +73,16 @@ col_types <- readr::cols(
       redcap_event_name = readr::col_factor(),
       redcap_repeat_instrument = readr::col_factor(),
       redcap_repeat_instance = readr::col_factor(),
+      part_dob  = readr::col_character(),
       gest_age_measure = readr::col_character(),
       gest_age	 = readr::col_character(),
       gest_age_units  = readr::col_character(),
       mom_admit_age_measure = readr::col_character(),
       mom_admit_age_yr = readr::col_character(),
-      mom_admit_age_yr_units = readr::col_character()
+      mom_admit_age_yr_units = readr::col_character(),
+      gravidity = readr::col_character(),
+      parity = readr::col_character(),
+      delivery_admit_date = readr::col_character()
      )
 
 # participant records
@@ -108,7 +113,7 @@ df=redcap_data
 ## EXPORT to Sharedrive
 
 # file name
-file_name="delivery.rda"
+file_name="baby_delivery.rda"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 df %>% save(df, file=data_export_path)

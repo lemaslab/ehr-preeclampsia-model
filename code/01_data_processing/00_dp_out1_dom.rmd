@@ -1,7 +1,7 @@
 ---
-title: "GetData Output 2 - Maternal Age"
+title: "Get Data: outcome 1"
 author: "Hailey Ballard"
-date: "11/18/2021"
+date: "10/21/2021"
 output: html_document
 ---
 
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # ***************                Project Overview              *************** #
 # **************************************************************************** #
 # Author:      Hailey Ballard
-# Date:        November 18, 2021
+# Date:        October 21, 2021
 # IRB:         IRB protocol IRB201601899  
 #
 # version: R version 4.0.3 (2020-10-10)
@@ -55,10 +55,21 @@ rcon <- redcapConnection(url=uri, token=api_token)
 ```
 
 ```{r, message=FALSE}
+# codes: pre-eclampsia
 
-# maternal age
+outcomes=c("651","652","O30","O30.0","O30.1",
+           "O30.2","O30.8","O30.9","O31")
 
-variables=c("part_id","perinatal_dx_date", "perinatal_dx_code", "perinatal_dx_descrip", "perinatal_dx_type", "perinatal_icd_code", "perinatal_dx_code_type")
+```
+
+
+```{r, message=FALSE}
+
+# cancer outcomes
+
+variables=c("part_id","cancer_dx_date",
+                    "cancer_dx_code","cancer_dx_descrip","cancer_dx_type",
+                    "cancer_icd_code","cancer_dx_code_type")
 
 # column types.
 col_types <- readr::cols(
@@ -66,12 +77,12 @@ col_types <- readr::cols(
       redcap_event_name = readr::col_factor(),
       redcap_repeat_instrument = readr::col_factor(),
       redcap_repeat_instance = readr::col_factor(),
-      perinatal_dx_date = readr::col_date(),
-      perinatal_dx_code	 = readr::col_factor(),
-      perinatal_dx_descrip  = readr::col_character(),
-      perinatal_dx_type = readr::col_factor(),
-      perinatal_icd_code = readr::col_factor(),
-      perinatal_dx_code_type = readr::col_factor()
+      cancer_dx_date = readr::col_date(),
+      cancer_dx_code = readr::col_factor(),
+      cancer_dx_descrip  = readr::col_character(),
+      cancer_dx_type = readr::col_factor(),
+      cancer_icd_code = readr::col_factor(),
+      cancer_dx_code_type = readr::col_factor()
      )
 
 # participant records
@@ -94,7 +105,7 @@ end_time - start_time
 
 # exploratory analysis
 
-ggplot(df, aes(x = perinatal_dx_code)) +
+ggplot(df, aes(x = cancer_dx_code)) +
   geom_bar()
 
 ```
@@ -110,6 +121,5 @@ file_name="out1.rda"
 data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_path=paste0(data_directory,file_name)
 df %>% save(df, file=data_path)
-
 
 ```

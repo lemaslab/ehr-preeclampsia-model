@@ -20,11 +20,15 @@ knitr::opts_chunk$set(echo = TRUE)
 #
 # version: R version 4.0.3 (2020-10-10)
 # version: Rstudio version Version 1.3.1073  
+
 # **************************************************************************** #
 # ***************                Description                   *************** #
 # **************************************************************************** #
 # PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
 # Note: vpn must be active
+
+# objective: export all perinatal ICD9/10 codes from redcap and cache as rda file.  
+
 ```
 
 
@@ -51,14 +55,6 @@ library(ggplot2)
 # API and URL
 uri='https://redcap.ctsi.ufl.edu/redcap/api/'
 rcon <- redcapConnection(url=uri, token=api_token)
-
-```
-
-```{r, message=FALSE}
-# codes: pre-eclampsia
-
-outcomes=c("651","652","O30","O30.0","O30.1",
-           "O30.2","O30.8","O30.9","O31")
 
 ```
 
