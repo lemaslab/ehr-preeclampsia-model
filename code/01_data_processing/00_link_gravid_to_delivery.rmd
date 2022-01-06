@@ -40,7 +40,6 @@ library(ggplot2)
 
 load("~/ehr-preeclampsia-model/data/processed/mom_gravid_raw.rda")
 load("~/ehr-preeclampsia-model/data/processed/mombaby_delivery_raw.rda")
-gravid=df
 
 ```
 
