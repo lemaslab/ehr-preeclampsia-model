@@ -1,0 +1,208 @@
+---
+title: "IDR-to-Redcap: linkage"
+author: "Dominick J. Lemas"
+output: html_document
+
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick J. Lemas 
+# Start Date:        December 09, 2021 
+# Last Modified:      
+# IRB:               IRB protocol IRB201601899 
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073 
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+#  (1) Descriptive statistics on IDR data. 
+#  (2) Process IDR data. 
+#  (3) Outputs for downstream import-ready files for RedCap. 
+
+```
+
+```{r, include=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                Libraries                     *************** #
+# **************************************************************************** #
+
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(stringr)
+
+```
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+# Data Processing Notes
+
+# IDR
+release_date="Fri 9/24/2021 9:47 AM"
+idr_analyst="Lei McDevitt"
+idr_analyst_email="leimcdevitt@ufl.edu"
+
+# Lemas Lab
+dataprocessing_date=format(Sys.time(), "%a %b %d %X %Y")
+lemaslab_analyst="Dominick Lemas"
+lemaslab_analyst_email="djlemas@ufl.edu"
+lemaslab_code="ehr-database/code/data_processing/idr2redcap_09_2021/"
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                demographics                                             
+# **************************************************************************** #
+# rows:            28530
+# cols:            20 
+# unique baby id:  28530
+# unique mom id:   22075
+
+
+# variables
+# part_id, mmom_id, baby_id
+
+
+# EXTRACT DATA FROM EXCEL
+
+# import variables
+n_max=1000000
+data_file_name="baby_mom_at_birth_with_payer.csv"
+data_dir=paste0("~/ehr-database/data/raw/dataset_09_2021/")
+# data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_09_2021/")
+data_import_path=paste0(data_dir,data_file_name)
+
+# read data
+delivery=read_csv(data_import_path, col_types = cols()) 
+
+# rename
+# note: renaming to eliminate spaces EVEN THOUGH we will rename or drop later.
+newdata=rename(delivery, 
+               baby_id = `Deidentified_baby_ID`, 
+               baby_race=Race,
+               baby_ethnicity=Ethnicity, 
+               part_dob=`Date of Delivery`, 
+               baby_birth_wt_gr=`Birth Weight`,
+               delivery_mode.raw=`Pediatric Delivery Type`,
+               delivery_admit_source=`Admit Source`,
+               baby_gest_age=`Pediatric Gestational Age`, 
+               part_gender=Sex, 
+               mom_id=Deidentified_mom_ID,
+               delivery_admit_date=`Admit Date_mom`, 
+               mom_race=Race_mom,
+               mom_ethnicity=Ethnicity_mom,
+               mom_age_delivery=`Age at Encounter_mom`,
+               health_insurance=Payer_mom,
+               mom_admit_height_in=`Admit Height (in)`,
+               mom_admit_weight_lbs=`Admit Weight (lbs)`,
+               mom_admit_weight_kgs=`Admit Weight (kg)`,
+               mom_admit_height_cm=`Admit Height (cm)`,
+               mom_admit_bmi=`Admit BMI` )
+
+# drop DEMOGRAPHIC variables
+demo_select=newdata %>%
+  select(baby_id,
+         mom_id,delivery_admit_date)
+
+# format dates
+demo_ready = demo_select %>%
+  mutate(delivery_admit_date=mdy(delivery_admit_date))
+
+# FORMAT FOR REDCAP
+
+data_ready=demo_ready %>%
+  mutate(redcap_repeat_instrument="linkage",
+         redcap_event_name=paste0(year(delivery_admit_date),"_arm_1")) %>%
+  mutate(baby_id=paste0("baby-",baby_id),
+         mom_id=paste0("mom-",mom_id)) 
+
+# create baby data
+baby_ready = data_ready %>%
+  mutate(part_id=baby_id) %>%
+  mutate(redcap_event_name=paste0(year(delivery_admit_date),"_arm_1")) %>% 
+  arrange(part_id, delivery_admit_date) %>%
+  group_by(part_id,redcap_event_name,delivery_admit_date) %>% 
+  mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything())
+
+range(baby_ready$redcap_repeat_instance)
+
+# create mom
+mom_ready = data_ready %>%
+  mutate(part_id=mom_id) %>%
+  mutate(redcap_event_name=paste0(year(delivery_admit_date),"_arm_1")) %>% 
+  arrange(part_id, delivery_admit_date) %>%
+  group_by(part_id,redcap_event_name,delivery_admit_date) %>% 
+  mutate(redcap_repeat_instance = row_number()) %>%
+  select("part_id","redcap_repeat_instrument","redcap_repeat_instance","redcap_event_name",everything())
+
+range(mom_ready$redcap_repeat_instance)
+
+
+
+
+# combine mom & baby
+
+data_final=bind_rows(baby_ready,mom_ready) %>%
+  ungroup() %>% select(-delivery_admit_date)
+
+## EXPORT FOR REDCAP
+
+# export variables
+batchSize=12000; # number of rows in single output file
+data_file_name_export=paste0("ALL_",as.character(data_final[2,2]))
+# output_dir=paste0("~/ehr-database/data/processed/redcap_ready/linkage/")
+output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/processed/redcap_ready/linkage/")
+data_export_path=paste0(output_dir,data_file_name_export)
+
+# number of import files
+ chunks=split(data_final, floor(0:(nrow(data_final)-1)/batchSize))
+
+# export each "chunk" of redcap-ready data
+ for (i in 1:length(chunks))
+   { # second loop
+   write.table(chunks[[i]],paste0(data_export_path,i,'.csv'),row.names=F,na = "", sep=",")
+   } # end second loop        
+
+```
+#### __Data Summary__
+Electronic health record (EHR) data were released from the UF Integrated Data Repository (IDR) by `r idr_analyst` on `r release_date` which includes Protected Health Information and are provided to you at your request and are intended solely for use in the research approved by IRB protocol IRB201601899. The data represents the cohort of patients presenting to University of Florida who had a baby delivery between June, 2011 and September, 2021. Note: this study required 25 hours of analyst time. The data are released to you in your role for this study as described in your IRB documents. Please ensure that appropriate safeguards as described in UF Health and/or University of Florida policies are implemented to protect the integrity of the PHI.
+
+#### __Data Processing Overview__
+Data processing was completed by `r lemaslab_analyst` on `r dataprocessing_date`. 
+
+The code is available on private github repo @: `r lemaslab_code`
+
+The raw data is stored on UF/HOBI sharedrive: `r data_dir`
+
+The processed data is stored on UF/HOBI sharedrive: `r output_dir`
+
+![](data_processing_workflow.png)
+
+#### __Data Processing Statistics__
+
+The raw data contains `r dim(delivery)[1]` rows and `r dim(delivery)[2]` columns. There are `r length(unique(newdata$mom_id))` unique ids. 
+
+The names of column variables includes: `r names(data_final)`
+
+The processed data included `r length(chunks)` files with `r format(batchSize, scientific = F, digits = 0)` rows within each file.
+
+##### __CTSI/NIH Grant Information__
+
+In accordance with NIH requirements, all publications, presentations and proposals supported in whole or in part by the UF CTSI or its services must cite the appropriate NIH grant number(s). When using data and services from the IDR, please use the following citation language.
+
+We acknowledge the University of Florida Integrated Data Repository (IDR) and the UF Health Office of the Chief Data Officer for providing the analytic data set for this project. Additionally, the Research reported in this publication was supported by the National Center for Advancing Translational Sciences of the National Institutes of Health under University of Florida Clinical and Translational Science Awards UL1 TR000064 and UL1TR001427. The content of this publication, presentation and/or proposal is solely the responsibility of the authors and does not necessarily represent the official views of the National Institutes of Health.
+
+

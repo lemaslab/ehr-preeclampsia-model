@@ -1,7 +1,7 @@
 ---
-title: "getData: perinatal-codes-baby"
-author: "Dominick Lemas"
-date: "12/09/2021"
+title: "Get Data: outcome 1"
+author: "Hailey Ballard"
+date: "10/21/2021"
 output: html_document
 ---
 
@@ -14,9 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 # ***************                Project Overview              *************** #
 # **************************************************************************** #
-# Author:      Dominick Lemas
+# Author:      Hailey Ballard
 # Date:        October 21, 2021
-# Modified:    December 09, 2021
 # IRB:         IRB protocol IRB201601899  
 #
 # version: R version 4.0.3 (2020-10-10)
@@ -63,13 +62,14 @@ outcomes=c("651","652","O30","O30.0","O30.1",
 
 ```
 
+
 ```{r, message=FALSE}
 
-# variables: perinatal diagnosis codes
+# cancer outcomes
 
-variables=c("part_id","perinatal_dx_date", "perinatal_dx_code", 
-            "perinatal_dx_descrip", "perinatal_dx_type", 
-            "perinatal_icd_code", "perinatal_dx_code_type")
+variables=c("part_id","cancer_dx_date",
+                    "cancer_dx_code","cancer_dx_descrip","cancer_dx_type",
+                    "cancer_icd_code","cancer_dx_code_type")
 
 # column types.
 col_types <- readr::cols(
@@ -77,96 +77,49 @@ col_types <- readr::cols(
       redcap_event_name = readr::col_factor(),
       redcap_repeat_instrument = readr::col_factor(),
       redcap_repeat_instance = readr::col_factor(),
-      perinatal_dx_date = readr::col_date(),
-      perinatal_dx_code	 = readr::col_factor(),
-      perinatal_dx_descrip  = readr::col_character(),
-      perinatal_dx_type = readr::col_factor(),
-      perinatal_icd_code = readr::col_factor(),
-      perinatal_dx_code_type = readr::col_factor()
+      cancer_dx_date = readr::col_date(),
+      cancer_dx_code = readr::col_factor(),
+      cancer_dx_descrip  = readr::col_character(),
+      cancer_dx_type = readr::col_factor(),
+      cancer_icd_code = readr::col_factor(),
+      cancer_dx_code_type = readr::col_factor()
      )
 
 # participant records
-records=baby_list
+records=mom_list
 
 ```
 
-
 ```{r, message=FALSE}
-# This data pull works: changed the batch size to very small
 
+# pull data
 start_time = Sys.time()
- redcap_data=redcap_read(batch_size=5, 
-                            redcap_uri=uri, 
-                            token=api_token,
-                            records=records,
-                            fields=variables,
-                            col_types=col_types)$data
+df=getData_redcap(api_token,uri,records,variables,col_types) %>%
+  filter(redcap_repeat_instrument=="diagnosis_codes") %>% as_tibble() 
 end_time = Sys.time()
 end_time - start_time
 
-length(unique(redcap_data$part_id))
-
-df=redcap_data %>%
-  drop_na()
 
 ```
-
-
 ```{r, message=FALSE}
 
 # exploratory analysis
 
-ggplot(df, aes(x = perinatal_dx_code)) +
+ggplot(df, aes(x = cancer_dx_code)) +
   geom_bar()
 
 ```
 
-```{r, message=FALSE}
 
-length(unique(df$part_id))
-
-# outcomes
-outcomes
-
-# create logic: 1= match %in% outcomes, 0= no match  
-df2 = df %>%
-  mutate(multiple_logic=if_else(perinatal_dx_code %in% outcomes, 1, 0)) 
-
-```
 
 ```{r, message=FALSE}
 ## EXPORT to Sharedrive
 
 # file name
-file_name="mom_perinatal_codes.rda"
-# data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
-data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
-data_export_path=paste0(data_export_directory,file_name)
-df %>% save(df, file=data_export_path)
-
-```
-
-```{r, message=FALSE}
-
-# what codes do we have in redcap dataset?
-
-# import data
-file_name="mom_perinatal_codes.rda"
-data_import_directory=paste0("~/ehr-preeclampsia-model/data/processed/")  
-data_import_path=paste0(data_import_directory,file_name)
-load(file=data_import_path)
-
-# select codes
-
-codes=df %>%
-  select(perinatal_dx_code) %>% unique()
-  
-# export unique codes
-
-data_file_name_export="mom_perinatal.csv"
-output_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/output/medical_codes/")
-data_export_path=paste0(output_dir,data_file_name_export)
-write.table(codes,data_export_path,row.names=F,na = "", sep=",")
-
+file_name="out1.rda"
+#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
+data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+data_path=paste0(data_directory,file_name)
+df %>% save(df, file=data_path)
 
 ```

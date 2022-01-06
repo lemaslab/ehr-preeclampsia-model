@@ -1,7 +1,7 @@
 ---
-title: "getData: delivery"
-author: "Dominick Lemas & Hailey Ballard"
-date: "12/03/2021"
+title: "getData: linkage"
+author: "Dominick Lemas"
+date: "01/05/2022"
 output: html_document
 ---
 
@@ -12,8 +12,8 @@ output: html_document
 # **************************************************************************** #
 
 # Author:            Dominick Lemas & Hailey Ballard 
-# Start Date:        November 01, 2021 
-# Last Modified:     December 03, 2021 
+# Start Date:        January 05, 2022 
+# Last Modified:      
 # IRB:               IRB protocol IRB201601899  
 #                    
 #
@@ -24,10 +24,8 @@ output: html_document
 # ***************                Objective                     *************** #
 # **************************************************************************** #
 
-#  (1) Descriptive statistics on IDR data. 
-#  (2) Process IDR data. 
-#  (3) Outputs for downstream import-ready files for RedCap. 
-
+#  (1) Pull mom-baby linkage data 
+#  (2) save as an *.rda object for downstream analysis 
 
 ```
 
@@ -63,8 +61,7 @@ rcon <- redcapConnection(url=uri, token=api_token)
 
 # redcap variables
 
-variables=c("part_id","gest_age_measure","gest_age","gest_age_units",
-            "mom_admit_age_measure","mom_admit_age_yr","mom_admit_age_yr_units")
+variables=c("part_id","mom_id","baby_id")
 
 # column types.
 col_types <- readr::cols(
@@ -72,16 +69,12 @@ col_types <- readr::cols(
       redcap_event_name = readr::col_factor(),
       redcap_repeat_instrument = readr::col_factor(),
       redcap_repeat_instance = readr::col_factor(),
-      gest_age_measure = readr::col_character(),
-      gest_age	 = readr::col_character(),
-      gest_age_units  = readr::col_character(),
-      mom_admit_age_measure = readr::col_character(),
-      mom_admit_age_yr = readr::col_character(),
-      mom_admit_age_yr_units = readr::col_character()
-     )
+      mom_id  = readr::col_character(),
+      baby_id = readr::col_character()
+      )
 
 # participant records
-records=baby_list
+records=part_id_list
 
 ```
 
@@ -108,7 +101,7 @@ df=redcap_data
 ## EXPORT to Sharedrive
 
 # file name
-file_name="delivery.rda"
+file_name="baby_delivery.rda"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 df %>% save(df, file=data_export_path)

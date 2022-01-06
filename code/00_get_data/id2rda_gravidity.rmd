@@ -1,0 +1,101 @@
+---
+title: "IDR-to-Redcap: gravidity and parity"
+author: "Dominick J. Lemas"
+date: "01/05/2022"
+output: html_document
+
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+
+# Author:            Dominick Lemas
+# Start Date:        January 05, 2022 
+# IRB:               IRB protocol IRB201601899 
+#                    
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073 
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+#  (1) Descriptive statistics on IDR data. 
+#  (2) Process IDR data. 
+#  (3) Outputs for downstream import-ready files for RedCap. 
+
+```
+
+```{r, include=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                Libraries                     *************** #
+# **************************************************************************** #
+
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(stringr)
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+# **************************************************************************** #
+# ***************                gravidity_release                                              
+# **************************************************************************** #
+# rows:       9142610
+# cols:       6 
+# unique id:  21997
+# repeat:     1:n
+# ICD9/10:    NA
+# missing:    c(" ", "9999999")   
+
+n_max=10000000
+data_file_name="gravidity_release.csv"
+# data_dir=paste0("~/ehr-database/data/raw/dataset_01_2022/")
+data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_01_2022/")
+data_import_path=paste0(data_dir,data_file_name)
+
+# read data
+data=read_csv(data_import_path, col_types = cols()) %>%
+  rename(mom_id = `Deidentified_mom_ID`, 
+               pregnancy_start_date_tmp=`Pregnancy Start Date`,
+               gravidity=Gravidity, 
+               parity=Parity)
+
+# unique ID? Some moms had multiple babies in data set
+length(unique(data$mom_id)) # 22031
+length(data$mom_id)         # 27553
+
+# ## FORMAT DATES
+data_formatted = data %>%
+  mutate(pregnancy_start_date=as.POSIXct(pregnancy_start_date_tmp, format="%m/%d/%Y")) %>% select(-pregnancy_start_date_tmp)
+
+# FORMAT
+data_ready = data_formatted %>%
+  mutate(mom_id=paste0("mom-",mom_id),
+         part_id=mom_id)  %>% 
+  arrange(part_id, pregnancy_start_date) %>%
+  group_by(part_id,pregnancy_start_date) %>% 
+  select("part_id",everything())
+
+## EXPORT to Sharedrive
+
+df=data_ready
+
+# file name
+file_name="mom_gravid_raw.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+# data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+data_export_path=paste0(data_export_directory,file_name)
+df %>% save(df, file=data_export_path)
+
+```
+
+
