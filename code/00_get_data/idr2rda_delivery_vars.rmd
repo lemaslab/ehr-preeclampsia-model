@@ -16,8 +16,8 @@ output: html_document
 # Last Modified:      
 # IRB:               IRB protocol IRB201601899 
 #
-# version: R version 4.0.3 (2020-10-10)
-# version: Rstudio version Version 1.3.1073 
+# version: R 4.1.2 (2021-11-01)
+# version: Rstudio 2021.09.1 Build 372 
 
 # **************************************************************************** #
 # ***************                Objective                     *************** #
@@ -39,7 +39,6 @@ library(tidyr)
 library(dplyr)
 library(tidyverse)
 library(lubridate)
-
 
 ```
 
@@ -94,7 +93,7 @@ data_select=delivery %>%
 data_ready = data_select %>%
   mutate(delivery_admit_date=mdy(delivery_admit_date),
          part_dob=mdy_hm(part_dob),
-         gest_start_date=part_dob-years(1)-months(2)) %>%
+         gest_start_date=as_date(part_dob) %m-% months(20)) %>%
   mutate(baby_id=paste0("baby-",baby_id),
          mom_id=paste0("mom-",mom_id),
          part_id=baby_id)  %>% 
@@ -102,6 +101,9 @@ data_ready = data_select %>%
   group_by(part_id,delivery_admit_date) %>% 
   select("part_id",everything())
 
+```
+
+```{r, echo=FALSE, warning=FALSE}
 
 ## EXPORT to Sharedrive
 
