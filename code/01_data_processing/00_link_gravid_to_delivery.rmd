@@ -16,8 +16,15 @@ output: html_document
 #
 # version: R 4.1.2 (2021-11-01)
 # version: Rstudio 2021.09.1 Build 372  
+
 # **************************************************************************** #
-# ***************                Description                   *************** #
+# ***************          Technical Notes                     *************** #
+# **************************************************************************** #
+
+# fuzzyjoin: https://community.rstudio.com/t/tidy-way-to-range-join-tables-on-an-interval-of-dates/7881
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
 # **************************************************************************** #
 
 # (1) link delivery and gravidity and parity data.
@@ -29,8 +36,7 @@ output: html_document
 # ***************                Library                       *************** #
 
 library(tidyverse)
-library(dplyr)
-library(ggplot2)
+library(fuzzyjoin)
 
 ```
 
@@ -43,58 +49,33 @@ load("~/ehr-preeclampsia-model/data/processed/mombaby_delivery_raw.rda")
 
 ```
 
+
 ```{r, message=FALSE}
 
-# cancer outcomes
+# format dates
 
-variables=c("part_id", "mom_admit_age_measure", "mom_admit_age_yr", "mom_admit_age_yr_units")
+delivery_final = delivery %>%
+  mutate_at(vars(gest_start_date, part_dob, delivery_admit_date), as.Date, format = "%Y-%m-%d")
 
-# column types.
-col_types <- readr::cols(
-      part_id  = readr::col_character(),
-      redcap_event_name = readr::col_factor(),
-      redcap_repeat_instrument = readr::col_factor(),
-      mom_admit_age_measure = readr::col_factor(),
-      mom_admit_age_yr = readr::col_character(),
-      mom_admit_age_yr_units  = readr::col_factor()
-     )
-
-# participant records
-records=mom_list
+gravid_final = gravid %>%
+  mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d")
 
 ```
 
 ```{r, message=FALSE}
 
-# pull data
+# join
 start_time = Sys.time()
-df=getData_redcap(api_token,uri,records,variables,col_types) %>%
-  filter(redcap_repeat_instrument=="delivery") %>% as_tibble() 
+
+test=fuzzy_left_join(
+  delivery_final,gravid_final,
+  by = c(
+    "mom_id" = "mom_id",
+    "gest_start_date" = "pregnancy_start_date",
+    "part_dob"="pregnancy_start_date"),
+  match_fun = list(`==`, `>=`, `<=`)) 
+
 end_time = Sys.time()
 end_time - start_time
-
-
-```
-```{r, message=FALSE}
-
-# exploratory analysis
-
-ggplot(df, aes(x = cancer_dx_code)) +
-  geom_bar()
-
-```
-
-
-
-```{r, message=FALSE}
-## EXPORT to Sharedrive
-
-# file name
-file_name="out1.rda"
-#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
-data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
-data_path=paste0(data_directory,file_name)
-df %>% save(df, file=data_path)
-
 
 ```
