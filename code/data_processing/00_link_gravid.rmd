@@ -1,0 +1,105 @@
+---
+title: "GetData-Output 1 (Maternal Age)"
+author: "Hailey Ballard"
+date: "10/21/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        January 05, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073  
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+```
+
+
+```{r, message=FALSE}
+
+# load data
+
+load("~/ehr-preeclampsia-model/data/processed/mom_gravid_raw.rda")
+load("~/ehr-preeclampsia-model/data/processed/mombaby_delivery_raw.rda")
+gravid=df
+
+```
+
+```{r, message=FALSE}
+
+# cancer outcomes
+
+variables=c("part_id", "mom_admit_age_measure", "mom_admit_age_yr", "mom_admit_age_yr_units")
+
+# column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      mom_admit_age_measure = readr::col_factor(),
+      mom_admit_age_yr = readr::col_character(),
+      mom_admit_age_yr_units  = readr::col_factor()
+     )
+
+# participant records
+records=mom_list
+
+```
+
+```{r, message=FALSE}
+
+# pull data
+start_time = Sys.time()
+df=getData_redcap(api_token,uri,records,variables,col_types) %>%
+  filter(redcap_repeat_instrument=="delivery") %>% as_tibble() 
+end_time = Sys.time()
+end_time - start_time
+
+
+```
+```{r, message=FALSE}
+
+# exploratory analysis
+
+ggplot(df, aes(x = cancer_dx_code)) +
+  geom_bar()
+
+```
+
+
+
+```{r, message=FALSE}
+## EXPORT to Sharedrive
+
+# file name
+file_name="out1.rda"
+#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
+data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+data_path=paste0(data_directory,file_name)
+df %>% save(df, file=data_path)
+
+
+```

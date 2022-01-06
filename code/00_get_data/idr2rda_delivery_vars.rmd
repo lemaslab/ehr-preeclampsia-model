@@ -94,7 +94,7 @@ data_select=delivery %>%
 data_ready = data_select %>%
   mutate(delivery_admit_date=mdy(delivery_admit_date),
          part_dob=mdy_hm(part_dob),
-         gest_start_date=part_dob-365) %>%
+         gest_start_date=part_dob-years(1)-months(2)) %>%
   mutate(baby_id=paste0("baby-",baby_id),
          mom_id=paste0("mom-",mom_id),
          part_id=baby_id)  %>% 
@@ -105,13 +105,13 @@ data_ready = data_select %>%
 
 ## EXPORT to Sharedrive
 
-df=data_ready
+delivery=data_ready
 
 # file name
 file_name="mombaby_delivery_raw.rda"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 # data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_export_path=paste0(data_export_directory,file_name)
-df %>% save(df, file=data_export_path)
+delivery %>% save(delivery, file=data_export_path)
 
 ```
