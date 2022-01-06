@@ -110,7 +110,14 @@ for(i in 1:chunks){
     pages[[i]] <- fuzzy
   } # END LOOP
 
-fuzzy_final=bind_rows(pages)
+data_ready=bind_rows(pages)
 
+delivery=data_ready
+
+# file name
+file_name="mombaby_linked_clinical.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery %>% save(delivery, file=data_export_path)
   
 ```
