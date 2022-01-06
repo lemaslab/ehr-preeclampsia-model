@@ -1,5 +1,3 @@
-
-
 install.packages("tidyverse")
 install.packages("fuzzyjoin")
 
@@ -22,9 +20,9 @@ gravid_final = gravid %>%
   mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% 
   ungroup() %>% select(-part_id) %>% drop_na()
 
-chunks=length(unique(delivery_ids))
 
-# START LOOP  
+# START LOOP 
+chunks=length(unique(delivery_ids)) 
 pages <- list()
 
 for(i in 1:chunks){
