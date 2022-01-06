@@ -24,7 +24,7 @@ output: html_document
 # **************************************************************************** #
 
 #  (1) Process IDR data. 
-#  (3) Outputs data as RDA object for downstream analysis. 
+#  (2) Outputs data as RDA object for downstream analysis. 
 
 ```
 
@@ -39,11 +39,11 @@ library(tidyr)
 library(dplyr)
 library(tidyverse)
 library(lubridate)
-library(stringr)
+
 
 ```
 
-```{r, warning=FALSE, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 
 # **************************************************************************** #
 # ***************                baby_mom_at_birth_with_payer.csv                                             
@@ -113,3 +113,5 @@ data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/")
 # data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_export_path=paste0(data_export_directory,file_name)
 df %>% save(df, file=data_export_path)
+
+```
