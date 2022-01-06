@@ -37,6 +37,7 @@ output: html_document
 
 library(tidyverse)
 library(fuzzyjoin)
+source("~/ehr-preeclampsia-model/code/utils/utils.R")
 
 ```
 
@@ -54,28 +55,62 @@ load("~/ehr-preeclampsia-model/data/processed/mombaby_delivery_raw.rda")
 
 # format dates
 
+# delivery
 delivery_final = delivery %>%
-  mutate_at(vars(gest_start_date, part_dob, delivery_admit_date), as.Date, format = "%Y-%m-%d")
+  mutate_at(vars(gest_start_date, part_dob, delivery_admit_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) 
 
+  delivery_ids=delivery_final$mom_id
+  length(unique(delivery_ids))
+
+# gravid
 gravid_final = gravid %>%
-  mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d")
+  mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) %>% drop_na()
+
+  gravid_ids=gravid_final$mom_id
+  length(unique(gravid_ids))
+
+# how many IDs intersect b/w two datasets- answer: 22031 of them!  
+  length(intersect(delivery_ids,gravid_ids))
+# how many IDs outersect b/w two datasets- answer: 44 of them!
+  length(outersect(delivery_ids,gravid_ids))
 
 ```
 
 ```{r, message=FALSE}
 
-# join
-start_time = Sys.time()
+# note: fuzzyjoin is VERY memory intensive. Need to loop through each ID to limit the memory footprint
+  
+  # create index
+  # delivery_ids
+  chunks=length(unique(delivery_ids))
 
-test=fuzzy_left_join(
-  delivery_final,gravid_final,
-  by = c(
-    "mom_id" = "mom_id",
-    "gest_start_date" = "pregnancy_start_date",
-    "part_dob"="pregnancy_start_date"),
-  match_fun = list(`==`, `>=`, `<=`)) 
+  #delivery_ids=c("mom-1","mom-14")
+  
+  # START LOOP  
+  pages <- list()
+  
+for(i in 1:chunks){
+    
+    # subset data
+    delivery_subset=delivery_final %>%
+      filter(mom_id==delivery_ids[i]) %>%
+      select(mom_id,everything())
+    
+    gravid_subset=gravid_final %>%
+      filter(mom_id==delivery_ids[i]) %>%
+      select(mom_id,everything())
+  
+    fuzzy=fuzzy_left_join(delivery_subset,gravid_subset,
+          by = c("mom_id" = "mom_id",
+                 "part_dob" = "pregnancy_start_date",
+                 "gest_start_date"="pregnancy_start_date"),
+          match_fun = list(`==`, `>=`, `<=`)) 
 
-end_time = Sys.time()
-end_time - start_time
 
+    pages[[i]] <- fuzzy
+  } # END LOOP
+
+fuzzy_final=bind_rows(pages)
+
+  
 ```
