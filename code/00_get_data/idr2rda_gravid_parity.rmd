@@ -23,9 +23,8 @@ output: html_document
 # ***************                Objective                     *************** #
 # **************************************************************************** #
 
-#  (1) Descriptive statistics on IDR data. 
-#  (2) Process IDR data. 
-#  (3) Outputs for downstream import-ready files for RedCap. 
+#  (1) Process IDR data. 
+#  (2) Outputs data as RDA object for downstream analysis. 
 
 ```
 
@@ -87,14 +86,14 @@ data_ready = data_formatted %>%
 
 ## EXPORT to Sharedrive
 
-df=data_ready
+gravid=data_ready
 
 # file name
 file_name="mom_gravid_raw.rda"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 # data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_export_path=paste0(data_export_directory,file_name)
-df %>% save(df, file=data_export_path)
+gravid %>% save(gravid, file=data_export_path)
 
 ```
 
