@@ -34,26 +34,37 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 library(tidyverse)
 library(dplyr)
+library(readxl)
+
 ```
 
 
 ```{r, message=FALSE}
 
-# load linked: clinical-gravid/parity data
-# should be delivery: 22075 unique moms & 28530 unique kids
+# import code variables
+n_max=1000000
+data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
+data.dir=paste0("~/ehr-preeclampsia-model/documents/datadictionary/")
+data_import_directory=paste0(data.dir,data.file.name)
 
-load("~/ehr-preeclampsia-model/data/processed/mombaby_linked_clinical.rda")
 
-# data inventory
-# 22075 unique moms and 28530 unique kids. there are 15 duplicates. need to follow-up
-length(unique(delivery$baby_id))
-length(unique(delivery$mom_id.x))
+# read data
+multiple=read_xlsx(data_import_directory, sheet = "multiples", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+```
 
-# duplicate follow-up. Look in raw data (gravid/parity and delivery data to untangle issues)
-# code solution upstream with data formatting. re-run data. 
-multi=which(duplicated(delivery$baby_id))
-df=delivery %>% filter(row_number() %in% multi)
-df$mom_id.x
+```{r, message=FALSE}
+
+# load data
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v0.rda")
+load("~/ehr-preeclampsia-model/data/processed/mom_perinatal_raw.rda")
+
+
+# rename data
+data_link=deliv_final
+perinatal_ehr_codes=df
+multiple_codes=multiple
 
 ```
 
