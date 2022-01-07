@@ -63,9 +63,10 @@ delivery_final = delivery %>%
   length(delivery_ids)
   length(unique(delivery_final$baby_id))
 
-# gravid: 21551 unique moms & 26642 unique deliveries
+# gravid: 21551 unique moms & 26600 
 gravid_final = gravid %>%
-  mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) %>% drop_na()
+  mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) %>% drop_na() %>%
+  group_by(mom_id,pregnancy_start_date) %>% slice_max(parity) # keep only 1 observation with > parity
 
   gravid_ids=gravid_final$mom_id
   length(unique(gravid_ids))
@@ -133,6 +134,7 @@ multi=which(duplicated(delivery$baby_id))
 
 df=delivery %>% filter(row_number() %in% multi)
 
+df$mom_id.x
 
 
 
