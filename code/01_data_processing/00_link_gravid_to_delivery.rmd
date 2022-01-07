@@ -129,4 +129,11 @@ load("~/ehr-preeclampsia-model/data/processed/mombaby_linked_clinical.rda")
 
 length(unique(delivery$baby_id))
 
+multi=which(duplicated(delivery$baby_id))
+
+df=delivery %>% filter(row_number() %in% multi)
+
+
+
+
 ```
