@@ -90,12 +90,17 @@ newdata=bind_rows(data01, data02)
 data_ready = newdata %>%
   mutate(mom_id=paste0("mom-",mom_id),
          part_id=mom_id)  %>% 
+  mutate(perinatal_dx_code=as_factor(perinatal_dx_code)) %>%
   arrange(part_id, perinatal_dx_date) %>%
   group_by(part_id,perinatal_dx_date) %>% 
   select("part_id",everything())
 
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
   
-## EXPORT to Sharedrive
+## EXPORT to Sharedrive: RDA Object
 
 df=data_ready
 
@@ -105,6 +110,25 @@ data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/")
 # data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_export_path=paste0(data_export_directory,file_name)
 df %>% save(df, file=data_export_path)
+
+
+```
+
+```{r, warning=FALSE, echo=FALSE}
+
+  
+## EXPORT to Sharedrive: CSV with ICD9/10 CODES
+
+df_codes=data_ready %>% ungroup() %>%
+  select(perinatal_dx_code,perinatal_dx_descrip,perinatal_icd_code) %>%
+  distinct() %>% arrange(perinatal_dx_code)  
+
+# file name
+file_name="perinatal_ICD_codes_rawdata_01_2022.csv"
+data_export_directory=paste0("~/ehr-preeclampsia-model/documents/datadictionary/") 
+# data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+data_export_path=paste0(data_export_directory,file_name)
+write_csv(df_codes, file=data_export_path)
 
 
 ```
