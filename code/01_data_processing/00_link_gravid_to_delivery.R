@@ -14,7 +14,7 @@ load("~/blue/djlemas/pe_prediction/data/mombaby_delivery_raw.rda")
 delivery_final = delivery %>%
   mutate_at(vars(gest_start_date, part_dob, delivery_admit_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id)
 
-delivery_ids=delivery_final$mom_id
+delivery_ids=unique(delivery_final$mom_id)
 
 gravid_final = gravid %>%
   mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% 
