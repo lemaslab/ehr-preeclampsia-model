@@ -41,17 +41,15 @@ for(i in 1:chunks){
                                "part_dob" = "pregnancy_start_date",
                                "gest_start_date"="pregnancy_start_date"),
                         match_fun = list(`==`, `>=`, `<=`)) 
-  
-  
   pages[[i]] <- fuzzy
 } # END LOOP
 
 data_ready=bind_rows(pages)
 
-delivery=data_ready
+deliv_dat=data_ready
 
 # file name
 file_name="mombaby_linked_clinical.rda"
 data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
 data_export_path=paste0(data_export_directory,file_name)
-delivery %>% save(delivery, file=data_export_path)
+deliv_dat %>% save(deliv_dat, file=data_export_path)

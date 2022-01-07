@@ -55,25 +55,24 @@ load("~/ehr-preeclampsia-model/data/processed/mombaby_delivery_raw.rda")
 
 # format dates
 
-# delivery
+# delivery: 22075 unique moms & 28530 unique kids
 delivery_final = delivery %>%
   mutate_at(vars(gest_start_date, part_dob, delivery_admit_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) 
 
   delivery_ids=unique(delivery_final$mom_id)
-  length(unique(delivery_ids))
+  length(delivery_ids)
   length(unique(delivery_final$baby_id))
 
-
-# gravid
+# gravid: 21551 unique moms & 26642 unique deliveries
 gravid_final = gravid %>%
   mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) %>% drop_na()
 
   gravid_ids=gravid_final$mom_id
   length(unique(gravid_ids))
 
-# how many IDs intersect b/w two datasets- answer: 22031 of them!  
+# how many MOM-IDs intersect b/w two datasets- answer: 21551 of them!  
   length(intersect(delivery_ids,gravid_ids))
-# how many IDs outersect b/w two datasets- answer: 44 of them!
+# how many MOM-IDs outersect b/w two datasets- answer: 524 of them!
   length(outersect(delivery_ids,gravid_ids))
 
 ```
@@ -84,10 +83,8 @@ gravid_final = gravid %>%
   
   # create index
   # delivery_ids
-  chunks=length(unique(delivery_ids))
+  chunks=length(delivery_ids)
 
-  #delivery_ids=c("mom-1","mom-14")
-  
   # START LOOP  
   pages <- list()
   
