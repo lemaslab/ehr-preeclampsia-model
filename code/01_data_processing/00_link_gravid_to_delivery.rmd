@@ -23,6 +23,9 @@ output: html_document
 
 # fuzzyjoin: https://community.rstudio.com/t/tidy-way-to-range-join-tables-on-an-interval-of-dates/7881
 
+# note:need to think more about multiples in data merge. 
+# gravid/parity with multiple entries on same day, picked the largest. not sure how this impacts multiples. 
+
 # **************************************************************************** #
 # ***************                Objective                     *************** #
 # **************************************************************************** #
