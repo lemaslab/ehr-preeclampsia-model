@@ -2,9 +2,9 @@
 #SBATCH --job-name=R_test   #Job name	
 #SBATCH --mail-type=END,FAIL   # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=djlemas@ufl.edu   # Where to send mail	
-#SBATCH --ntasks=2
-#SBATCH --mem=1gb   # Per processor memory
-#SBATCH --time=00:05:00   # Walltime
+#SBATCH --nodes=2                    # Run all processes on a single node	
+#SBATCH --mem=10gb   # Per processor memory
+#SBATCH --time=00:40:00   # Walltime
 #SBATCH --output=r_job.%j.out   # Name output file 
 #Record the time and compute node the job ran on
 date; hostname; pwd
