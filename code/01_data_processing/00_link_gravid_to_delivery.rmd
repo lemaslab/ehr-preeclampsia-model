@@ -1,13 +1,9 @@
 ---
-title: "GetData-Output 1 (Maternal Age)"
-author: "Hailey Ballard"
-date: "10/21/2021"
+title: "Delivery Linkage with Gravid/Parity"
+author: "Dominick Lemas"
+date: "01/05/2022"
 output: html_document
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ```{r, include=FALSE}
 ##-------------- 
@@ -18,25 +14,35 @@ knitr::opts_chunk$set(echo = TRUE)
 # Date:        January 05, 2022
 # IRB:         IRB protocol IRB201601899  
 #
-# version: R version 4.0.3 (2020-10-10)
-# version: Rstudio version Version 1.3.1073  
+# version: R 4.1.2 (2021-11-01)
+# version: Rstudio 2021.09.1 Build 372  
+
 # **************************************************************************** #
-# ***************                Description                   *************** #
+# ***************          Technical Notes                     *************** #
 # **************************************************************************** #
+
+# fuzzyjoin: https://community.rstudio.com/t/tidy-way-to-range-join-tables-on-an-interval-of-dates/7881
+
+# note:need to think more about multiples in data merge. 
+# gravid/parity with multiple entries on same day, picked the largest. not sure how this impacts multiples. 
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) link delivery and gravidity and parity data.
 
 ```
-
 
 ```{r, message=FALSE}
 # **************************************************************************** #
 # ***************                Library                       *************** #
 
 library(tidyverse)
-library(dplyr)
-library(plyr)
-library(ggplot2)
-```
+library(fuzzyjoin)
+source("~/ehr-preeclampsia-model/code/utils/utils.R")
 
+```
 
 ```{r, message=FALSE}
 
@@ -44,62 +50,95 @@ library(ggplot2)
 
 load("~/ehr-preeclampsia-model/data/processed/mom_gravid_raw.rda")
 load("~/ehr-preeclampsia-model/data/processed/mombaby_delivery_raw.rda")
-gravid=df
+
+```
+
+
+```{r, message=FALSE}
+
+# format dates
+
+# delivery: 22075 unique moms & 28530 unique kids
+delivery_final = delivery %>%
+  mutate_at(vars(gest_start_date, part_dob, delivery_admit_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) 
+
+  delivery_ids=unique(delivery_final$mom_id)
+  length(delivery_ids)
+  length(unique(delivery_final$baby_id))
+
+# gravid: 21551 unique moms & 26600 
+gravid_final = gravid %>%
+  mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% ungroup() %>% select(-part_id) %>% drop_na() %>%
+  group_by(mom_id,pregnancy_start_date) %>% slice_max(parity) # keep only 1 observation with > parity
+
+  gravid_ids=gravid_final$mom_id
+  length(unique(gravid_ids))
+
+# how many MOM-IDs intersect b/w two datasets- answer: 21551 of them!  
+  length(intersect(delivery_ids,gravid_ids))
+# how many MOM-IDs outersect b/w two datasets- answer: 524 of them!
+  length(outersect(delivery_ids,gravid_ids))
 
 ```
 
 ```{r, message=FALSE}
 
-# cancer outcomes
+# note: fuzzyjoin is VERY memory intensive. Need to loop through each ID to limit the memory footprint
+  
+  # create index
+  # delivery_ids
+  chunks=length(delivery_ids)
 
-variables=c("part_id", "mom_admit_age_measure", "mom_admit_age_yr", "mom_admit_age_yr_units")
-
-# column types.
-col_types <- readr::cols(
-      part_id  = readr::col_character(),
-      redcap_event_name = readr::col_factor(),
-      redcap_repeat_instrument = readr::col_factor(),
-      mom_admit_age_measure = readr::col_factor(),
-      mom_admit_age_yr = readr::col_character(),
-      mom_admit_age_yr_units  = readr::col_factor()
-     )
-
-# participant records
-records=mom_list
-
-```
-
-```{r, message=FALSE}
-
-# pull data
-start_time = Sys.time()
-df=getData_redcap(api_token,uri,records,variables,col_types) %>%
-  filter(redcap_repeat_instrument=="delivery") %>% as_tibble() 
-end_time = Sys.time()
-end_time - start_time
+  # START LOOP  
+  pages <- list()
+  
+for(i in 1:chunks){
+    
+    # subset data
+    delivery_subset=delivery_final %>%
+      filter(mom_id==delivery_ids[i]) %>%
+      select(mom_id,everything())
+    
+    gravid_subset=gravid_final %>%
+      filter(mom_id==delivery_ids[i]) %>%
+      select(mom_id,everything())
+  
+    fuzzy=fuzzy_left_join(delivery_subset,gravid_subset,
+          by = c("mom_id" = "mom_id",
+                 "part_dob" = "pregnancy_start_date",
+                 "gest_start_date"="pregnancy_start_date"),
+          match_fun = list(`==`, `>=`, `<=`)) 
 
 
-```
-```{r, message=FALSE}
+    pages[[i]] <- fuzzy
+  } # END LOOP
 
-# exploratory analysis
+data_ready=bind_rows(pages)
 
-ggplot(df, aes(x = cancer_dx_code)) +
-  geom_bar()
-
-```
-
-
-
-```{r, message=FALSE}
-## EXPORT to Sharedrive
+delivery=data_ready
 
 # file name
-file_name="out1.rda"
-#data_check_directory=paste0("~/mombaby-ehr-nlp/data/processed/redcap_check/") 
-data_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
-data_path=paste0(data_directory,file_name)
-df %>% save(df, file=data_path)
+file_name="mombaby_linked_clinical.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery %>% save(delivery, file=data_export_path)
+  
+```
+
+```{r, message=FALSE}
+
+# load data
+
+load("~/ehr-preeclampsia-model/data/processed/mombaby_linked_clinical.rda")
+
+length(unique(delivery$baby_id))
+
+multi=which(duplicated(delivery$baby_id))
+
+df=delivery %>% filter(row_number() %in% multi)
+
+df$mom_id.x
+
 
 
 ```
