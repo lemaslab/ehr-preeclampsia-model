@@ -1,0 +1,220 @@
+---
+title: "compute and format multiples"
+author: "Dominick Lemas"
+date: "01/07/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        January 07, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) compute and format the multiples data.
+```
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+
+
+```
+
+
+```{r, message=FALSE}
+
+# import code variables
+n_max=1000000
+data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
+data.dir=paste0("~/ehr-preeclampsia-model/documents/datadictionary/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+
+# read data
+multiple=read_xlsx(data_import_directory, sheet = "multiples", range = NULL, col_names = TRUE,
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
+          guess_max = min(1000, n_max))
+```
+
+```{r, message=FALSE}
+
+# load data
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v0.rda")
+load("~/ehr-preeclampsia-model/data/processed/mom_perinatal_raw.rda")
+
+```
+
+```{r, message=FALSE}
+
+# PREP ICD CODE 1:N DATA
+
+ehr_codes=df %>%
+  filter(perinatal_dx_type=="ENCOUNTER")
+
+# multiples outcomes
+multiple
+mult_all=multiple$perinatal_dx_code
+
+# perinatal codes
+ehr_codes
+length(unique(ehr_codes$part_id))  #22051 moms
+
+# create logic: 1= match %in% outcomes, 0= no match  
+ehr_mult = ehr_codes %>%
+  mutate(multiple_logic=if_else(perinatal_dx_code %in% mult_all, 1, 0)) 
+
+# how many moms have multiples and how many multiples
+ehr_mult %>%
+  group_by(multiple_logic) %>%
+  tally()
+
+# Subset to multiple EHR
+mult_subset= ehr_mult %>%
+  filter(multiple_logic==1) 
+
+# IDs
+mom_unique=unique(mult_subset$mom_id)
+
+```
+
+```{r, message=FALSE}
+
+# PREP the DELIVERY 1:1 Data
+
+# rename data
+data_final=deliv_final %>%
+  rename("mom_id"=mom_id.x) %>%
+  select(mom_id,part_dob,gest_start_date) %>%
+  mutate(multiple_logic=if_else(mom_id %in% mom_unique, 1, 0)) %>%
+  filter(multiple_logic==1) %>%
+  group_by(mom_id,part_dob) %>% slice(1)
+
+```
+
+```{r, message=FALSE}
+
+# START LOOP (RUN on UFRC)
+chunks=length(unique(mom_unique)) 
+pages <- list()
+
+for(i in 1:chunks){
+  
+  # subset data
+  codes_subset=mult_subset %>%
+    filter(mom_id==mom_unique[i]) %>%
+    select(mom_id,everything())
+  
+  delivery_subset=data_final %>%
+    filter(mom_id==mom_unique[i]) %>%
+    select(mom_id,everything())
+  
+  fuzzy=fuzzy_left_join(codes_subset,delivery_subset,
+                        by = c("mom_id" = "mom_id",
+                               "perinatal_dx_date" = "part_dob",
+                               "perinatal_dx_date"="gest_start_date"),
+                        match_fun = list(`==`, `<=`, `>=`)) %>%
+    select(-multiple_logic.x,-multiple_logic.y,-mom_id.y)
+  pages[[i]] <- fuzzy
+} # END LOOP
+
+data_ready=bind_rows(pages) %>%
+  rename("mom_id"="mom_id.x")
+
+multgest_dx_dob_v0=data_ready
+
+# file name
+file_name="multiple_codes_dob_v0.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+multgest_dx_dob_v0 %>% save(multgest_dx_dob_v0, file=data_export_path)
+
+```
+
+
+```{r, message=FALSE}
+# load UFRC linked data
+
+# 1077 unique moms
+load("~/ehr-preeclampsia-model/data/processed/multiple_codes_dob_v0.rda")
+
+# remove dates past DOB
+dat=multgest_dx_dob_v0 %>%
+  drop_na() %>% 
+        group_by(mom_id,part_dob) %>% 
+        filter(perinatal_dx_date == max(perinatal_dx_date))
+
+# link multiple data
+multiple_select=multiple %>%
+  select(perinatal_dx_code,perinatal_dx_category,perinatal_dx_subcategory,perinatal_dx_gestation)
+
+# merge ICD code annotations into ICD data
+code_data_annotation=left_join(
+  dat,
+  multiple_select,
+  by = "perinatal_dx_code",
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE)
+
+col_name=names(code_data_annotation) %>% 
+    str_replace_all("perinatal", "multgest")
+
+colnames(code_data_annotation)<-col_name
+
+code_final=code_data_annotation
+
+```
+
+
+```{r, message=FALSE}
+# MERGE mult-gest data into delivery
+
+# delivery data
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v0.rda")
+
+del_final=deliv_final %>%
+  rename("mom_id"="mom_id.x") %>%
+  select(-mom_id.y)
+
+# code-annotations
+code_final
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  code_final,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) %>%
+  select(-gest_start_date.y) %>%
+  rename("gest_start_date"="gest_start_date.x")
+
+delivery_final_v1=merge_final
+
+# file name
+file_name="delivery_linked_v1.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v1 %>% save(delivery_final_v1, file=data_export_path)
+
+```
