@@ -1,15 +1,8 @@
----
-title: "compute and format multiples"
-author: "Dominick Lemas"
-date: "01/07/2022"
-output: html_document
----
-
-```{r setup, include=FALSE}
+## ----setup, include=FALSE--------------------------------------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
-```
 
-```{r, include=FALSE}
+
+## ---- include=FALSE--------------------------------------------------------------------------------------
 ##-------------- 
 # **************************************************************************** #
 # ***************                Project Overview              *************** #
@@ -26,9 +19,9 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 
 # (1) compute and format the multiples data.
-```
 
-```{r, message=FALSE}
+
+## ---- message=FALSE--------------------------------------------------------------------------------------
 # **************************************************************************** #
 # ***************                Library                       *************** #
 # **************************************************************************** #
@@ -37,10 +30,9 @@ library(dplyr)
 library(readxl)
 library(fuzzyjoin)
 
-```
 
 
-```{r, message=FALSE}
+## ---- message=FALSE--------------------------------------------------------------------------------------
 
 # import code variables
 n_max=1000000
@@ -53,17 +45,17 @@ data_import_directory=paste0(data.dir,data.file.name)
 multiple=read_xlsx(data_import_directory, sheet = "multiples", range = NULL, col_names = TRUE,
           col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
           guess_max = min(1000, n_max))
-```
 
-```{r, message=FALSE}
+
+## ---- message=FALSE--------------------------------------------------------------------------------------
 
 # load data
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v0.rda")
-load("~/ehr-preeclampsia-model/data/processed/mom_perinatal_raw.rda")
+load("~/blue/djlemas/pe_prediction/data/delivery_linked_v0.rda")
+load("~/blue/djlemas/pe_prediction/data//mom_perinatal_raw.rda")
 
-```
 
-```{r, message=FALSE}
+
+## ---- message=FALSE--------------------------------------------------------------------------------------
 
 # PREP ICD CODE 1:N DATA
 
@@ -71,21 +63,12 @@ ehr_codes=df %>%
   filter(perinatal_dx_type=="ENCOUNTER")
 
 # multiples outcomes
-multiple
+# multiple
 mult_all=multiple$perinatal_dx_code
-
-# perinatal codes
-ehr_codes
-length(unique(ehr_codes$part_id))  #22051 moms
 
 # create logic: 1= match %in% outcomes, 0= no match  
 ehr_mult = ehr_codes %>%
   mutate(multiple_logic=if_else(perinatal_dx_code %in% mult_all, 1, 0)) 
-
-# how many moms have multiples and how many multiples
-ehr_mult %>%
-  group_by(multiple_logic) %>%
-  tally()
 
 # Subset to multiple EHR
 mult_subset= ehr_mult %>%
@@ -94,9 +77,8 @@ mult_subset= ehr_mult %>%
 # IDs
 mom_unique=unique(mult_subset$mom_id)
 
-```
 
-```{r, message=FALSE}
+## ---- message=FALSE--------------------------------------------------------------------------------------
 
 # PREP the DELIVERY 1:1 Data
 
@@ -108,9 +90,9 @@ data_final=deliv_final %>%
   filter(multiple_logic==1) %>%
   group_by(mom_id,part_dob) %>% slice(1)
 
-```
 
-```{r, message=FALSE}
+
+## ---- message=FALSE--------------------------------------------------------------------------------------
 
 # START LOOP 
 chunks=length(unique(mom_unique)) 
@@ -138,10 +120,9 @@ for(i in 1:chunks){
 
 data_ready=bind_rows(pages)
 
-```
 
 
-```{r, message=FALSE}
+## ---- message=FALSE--------------------------------------------------------------------------------------
 
 link_final=data_ready
 
@@ -150,7 +131,5 @@ file_name="multiple_codes_linked_dob_v0.rda"
 data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
 data_export_path=paste0(data_export_directory,file_name)
 deliv_dat %>% save(deliv_dat, file=data_export_path)
-
-```
 
 
