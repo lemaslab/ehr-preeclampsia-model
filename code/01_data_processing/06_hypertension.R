@@ -12,7 +12,7 @@ library(fuzzyjoin)
 data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
 data.dir=paste0("~/blue/djlemas/pe_prediction/data/")
 data_import_directory=paste0(data.dir,data.file.name)
-pe_codes=read_xlsx(data_import_directory, sheet = "hypertension", range = NULL, col_names = TRUE,
+hyper_codes=read_xlsx(data_import_directory, sheet = "hypertension", range = NULL, col_names = TRUE,
                    col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
 
 # df: import perinatal icd-code EHR data (1:n structure)
