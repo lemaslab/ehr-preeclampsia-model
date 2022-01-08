@@ -36,6 +36,7 @@ library(tidyverse)
 library(readxl)
 library(fuzzyjoin)
 
+
 ```
 
 
@@ -111,7 +112,7 @@ data_final=deliv_final %>%
 
 ```{r, message=FALSE}
 
-# START LOOP 
+# START LOOP (RUN on UFRC)
 chunks=length(unique(mom_unique)) 
 pages <- list()
 
@@ -138,13 +139,6 @@ for(i in 1:chunks){
 data_ready=bind_rows(pages) %>%
   rename("mom_id"="mom_id.x")
 
-```
-
-
-```{r, message=FALSE}
-
-data_ready=bind_rows(pages)
-
 multgest_dx_dob_v0=data_ready
 
 # file name
@@ -155,19 +149,72 @@ multgest_dx_dob_v0 %>% save(multgest_dx_dob_v0, file=data_export_path)
 
 ```
 
-```{r, message=FALSE}
-# load data
 
+```{r, message=FALSE}
+# load UFRC linked data
+
+# 1077 unique moms
 load("~/ehr-preeclampsia-model/data/processed/multiple_codes_dob_v0.rda")
 
-dat=multgest_dx_dob_v0 
+# remove dates past DOB
+dat=multgest_dx_dob_v0 %>%
+  drop_na() %>% 
+        group_by(mom_id,part_dob) %>% 
+        filter(perinatal_dx_date == max(perinatal_dx_date))
 
-length(unique(dat$baby_id))
+# link multiple data
+multiple_select=multiple %>%
+  select(perinatal_dx_code,perinatal_dx_category,perinatal_dx_subcategory,perinatal_dx_gestation)
 
-multi=which(duplicated(delivery$baby_id))
+# merge ICD code annotations into ICD data
+code_data_annotation=left_join(
+  dat,
+  multiple_select,
+  by = "perinatal_dx_code",
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE)
 
-df=delivery %>% filter(row_number() %in% multi)
+col_name=names(code_data_annotation) %>% 
+    str_replace_all("perinatal", "multgest")
 
-df$mom_id.x
+colnames(code_data_annotation)<-col_name
+
+code_final=code_data_annotation
+
+```
+
+
+```{r, message=FALSE}
+# MERGE mult-gest data into delivery
+
+# delivery data
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v0.rda")
+
+del_final=deliv_final %>%
+  rename("mom_id"="mom_id.x") %>%
+  select(-mom_id.y)
+
+# code-annotations
+code_final
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  code_final,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) %>%
+  select(-gest_start_date.y) %>%
+  rename("gest_start_date"="gest_start_date.x")
+
+delivery_final_v1=merge_final
+
+# file name
+file_name="delivery_linked_v1.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v1 %>% save(delivery_final_v1, file=data_export_path)
 
 ```
