@@ -48,7 +48,7 @@ mom_unique=unique(ehr_subset$mom_id)
 
 # rename data
 data_final=delivery_final_v1 %>%
-  select(mom_id,part_dob,gest_start_date) %>%
+  select(mom_id,part_dob,gest_start_date,baby_gest_age_raw,weeks,days) %>%
   mutate(ehr_logic=if_else(mom_id %in% mom_unique, 1, 0)) %>%
   filter(ehr_logic==1) %>%
   group_by(mom_id,part_dob) %>% slice(1) %>%
