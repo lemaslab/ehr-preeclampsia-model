@@ -79,7 +79,8 @@ for(i in 1:chunks){
   pages[[i]] <- fuzzy
 } # END LOOP
 
-data_ready=bind_rows(pages)
+data_ready=bind_rows(pages) %>%
+  rename("mom_id"="mom_id.x")
 
 multgest_dx_dob_v0=data_ready
 

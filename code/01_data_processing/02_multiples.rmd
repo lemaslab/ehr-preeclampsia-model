@@ -33,7 +33,6 @@ knitr::opts_chunk$set(echo = TRUE)
 # ***************                Library                       *************** #
 # **************************************************************************** #
 library(tidyverse)
-library(dplyr)
 library(readxl)
 library(fuzzyjoin)
 
@@ -136,21 +135,39 @@ for(i in 1:chunks){
   pages[[i]] <- fuzzy
 } # END LOOP
 
-data_ready=bind_rows(pages)
+data_ready=bind_rows(pages) %>%
+  rename("mom_id"="mom_id.x")
 
 ```
 
 
 ```{r, message=FALSE}
 
-link_final=data_ready
+data_ready=bind_rows(pages)
+
+multgest_dx_dob_v0=data_ready
 
 # file name
-file_name="multiple_codes_linked_dob_v0.rda"
-data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
+file_name="multiple_codes_dob_v0.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
-deliv_dat %>% save(deliv_dat, file=data_export_path)
+multgest_dx_dob_v0 %>% save(multgest_dx_dob_v0, file=data_export_path)
 
 ```
 
+```{r, message=FALSE}
+# load data
 
+load("~/ehr-preeclampsia-model/data/processed/multiple_codes_dob_v0.rda")
+
+dat=multgest_dx_dob_v0 
+
+length(unique(dat$baby_id))
+
+multi=which(duplicated(delivery$baby_id))
+
+df=delivery %>% filter(row_number() %in% multi)
+
+df$mom_id.x
+
+```
