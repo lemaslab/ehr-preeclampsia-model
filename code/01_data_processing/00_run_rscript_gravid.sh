@@ -12,6 +12,6 @@ date; hostname; pwd
 module load R
 
 #Run R script 
-Rscript 00_link_gravid_to_delivery.R
+Rscript 00_gravid.R
 
 date
