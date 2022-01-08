@@ -36,3 +36,19 @@ event_list=c("2011_arm_1","2012_arm_1","2013_arm_1","2014_arm_1",
 #-------------------
 forms=c("demographics","delivery","anthropometrics","diagnosis_codes","labs",
         "vaccines","antibiotics","medications")
+
+# DATA DICTIONARY
+#-------------------
+# import code variables
+data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
+data.dir=paste0("~/ehr-preeclampsia-model/documents/datadictionary/")
+data_import_directory=paste0(data.dir,data.file.name)
+
+# multiple-gestation
+multgest_codes=read_xlsx(data_import_directory, sheet = "multiples", range = NULL, col_names = TRUE,
+                   col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
+
+# pe
+pe_codes=read_xlsx(data_import_directory, sheet = "pe", range = NULL, col_names = TRUE,
+                   col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
+
