@@ -18,11 +18,12 @@ delivery_ids=unique(delivery_final$mom_id)
 
 gravid_final = gravid %>%
   mutate_at(vars(pregnancy_start_date), as.Date, format = "%Y-%m-%d") %>% 
-  ungroup() %>% select(-part_id) %>% drop_na()
+  ungroup() %>% select(-part_id) %>% drop_na() %>%
+  group_by(mom_id,pregnancy_start_date) %>% slice_max(parity) # keep only 1 observation with > parity
 
 
 # START LOOP 
-chunks=length(unique(delivery_ids)) 
+chunks=length(delivery_ids) 
 pages <- list()
 
 for(i in 1:chunks){
@@ -41,15 +42,17 @@ for(i in 1:chunks){
                                "part_dob" = "pregnancy_start_date",
                                "gest_start_date"="pregnancy_start_date"),
                         match_fun = list(`==`, `>=`, `<=`)) 
+  
+  
   pages[[i]] <- fuzzy
 } # END LOOP
 
 data_ready=bind_rows(pages)
 
-deliv_dat=data_ready
+delivery=data_ready
 
 # file name
 file_name="mombaby_linked_clinical.rda"
 data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
 data_export_path=paste0(data_export_directory,file_name)
-deliv_dat %>% save(deliv_dat, file=data_export_path)
+delivery %>% save(delivery, file=data_export_path)
