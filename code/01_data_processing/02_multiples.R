@@ -1,61 +1,27 @@
-## ----setup, include=FALSE--------------------------------------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE)
+install.packages("tidyverse")
+install.packages("fuzzyjoin")
+install.packages("readxl")
 
 
-## ---- include=FALSE--------------------------------------------------------------------------------------
-##-------------- 
-# **************************************************************************** #
-# ***************                Project Overview              *************** #
-# **************************************************************************** #
-# Author:      Dominick Lemas
-# Date:        January 07, 2022
-# IRB:         IRB protocol IRB201601899  
-#
-# version: R version 4.0.3 (2020-10-10)
-# version: Rstudio version Version 1.3.1073  
-
-# **************************************************************************** #
-# ***************                Objective                     *************** #
-# **************************************************************************** #
-
-# (1) compute and format the multiples data.
-
-
-## ---- message=FALSE--------------------------------------------------------------------------------------
-# **************************************************************************** #
-# ***************                Library                       *************** #
-# **************************************************************************** #
 library(tidyverse)
-library(dplyr)
 library(readxl)
 library(fuzzyjoin)
 
 
-
-## ---- message=FALSE--------------------------------------------------------------------------------------
-
 # import code variables
-n_max=1000000
 data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
-data.dir=paste0("~/ehr-preeclampsia-model/documents/datadictionary/")
+data.dir=paste0("~/blue/djlemas/pe_prediction/data/")
 data_import_directory=paste0(data.dir,data.file.name)
-
 
 # read data
 multiple=read_xlsx(data_import_directory, sheet = "multiples", range = NULL, col_names = TRUE,
-          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf,
-          guess_max = min(1000, n_max))
+          col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
 
-
-## ---- message=FALSE--------------------------------------------------------------------------------------
 
 # load data
 load("~/blue/djlemas/pe_prediction/data/delivery_linked_v0.rda")
 load("~/blue/djlemas/pe_prediction/data//mom_perinatal_raw.rda")
 
-
-
-## ---- message=FALSE--------------------------------------------------------------------------------------
 
 # PREP ICD CODE 1:N DATA
 
@@ -78,8 +44,6 @@ mult_subset= ehr_mult %>%
 mom_unique=unique(mult_subset$mom_id)
 
 
-## ---- message=FALSE--------------------------------------------------------------------------------------
-
 # PREP the DELIVERY 1:1 Data
 
 # rename data
@@ -90,11 +54,8 @@ data_final=deliv_final %>%
   filter(multiple_logic==1) %>%
   group_by(mom_id,part_dob) %>% slice(1)
 
-
-
-## ---- message=FALSE--------------------------------------------------------------------------------------
-
 # START LOOP 
+
 chunks=length(unique(mom_unique)) 
 pages <- list()
 
@@ -120,16 +81,12 @@ for(i in 1:chunks){
 
 data_ready=bind_rows(pages)
 
-
-
-## ---- message=FALSE--------------------------------------------------------------------------------------
-
-link_final=data_ready
+multgest_dx_dob_v0=data_ready
 
 # file name
-file_name="multiple_codes_linked_dob_v0.rda"
+file_name="multiple_codes_dob_v0.rda"
 data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
 data_export_path=paste0(data_export_directory,file_name)
-deliv_dat %>% save(deliv_dat, file=data_export_path)
+multgest_dx_dob_v0 %>% save(multgest_dx_dob_v0, file=data_export_path)
 
 
