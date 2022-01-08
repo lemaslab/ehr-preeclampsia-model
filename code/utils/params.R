@@ -52,3 +52,7 @@ multgest_codes=read_xlsx(data_import_directory, sheet = "multiples", range = NUL
 pe_codes=read_xlsx(data_import_directory, sheet = "pe", range = NULL, col_names = TRUE,
                    col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
 
+# hypertension
+# pe
+hyper_codes=read_xlsx(data_import_directory, sheet = "hypertension", range = NULL, col_names = TRUE,
+                   col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
