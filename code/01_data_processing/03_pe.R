@@ -86,7 +86,7 @@ pe_dx_dob_v0=data_ready
 
 # file name
 file_name="pe_codes_dob_v0.rda"
-data_export_directory=paste0("~/blue/djlemas/pe_prediction/") 
+data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
 data_export_path=paste0(data_export_directory,file_name)
 pe_dx_dob_v0 %>% save(pe_dx_dob_v0, file=data_export_path)
 
