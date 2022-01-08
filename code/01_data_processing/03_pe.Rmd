@@ -133,4 +133,82 @@ data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/")
 data_export_path=paste0(data_export_directory,file_name)
 pe_dx_dob_v0 %>% save(pe_dx_dob_v0, file=data_export_path)
 
+# create Rscript using knitr::purl()
+
 ```
+
+```{r, message=FALSE}
+# load UFRC linked data
+
+# 1077 unique moms
+load("~/ehr-preeclampsia-model/data/processed/pe_dx_dob_v0.rda")
+
+# remove dates past DOB and select the most recent code/visit before DOB. 
+dat=pe_dx_dob_v0 %>%
+  drop_na() %>% 
+        group_by(mom_id,part_dob) %>% 
+        filter(perinatal_dx_date == max(perinatal_dx_date))
+
+# link multiple data
+ehr_select=pe_codes %>%
+  select(perinatal_dx_code,perinatal_dx_category,perinatal_dx_subcategory,perinatal_dx_gestation)
+
+# merge ICD code annotations into ICD data
+code_annotate=left_join(
+  dat,
+  ehr_select,
+  by = "perinatal_dx_code",
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE)
+
+col_name=names(code_annotate) %>% 
+    str_replace_all("perinatal", "pe")
+
+colnames(code_annotate)<-col_name
+
+code_final=code_annotate
+
+```
+
+```{r, message=FALSE}
+
+# ANY PRENATAL PRE_ECLAMPSIA CODE
+
+# MERGE pe data into delivery
+
+# delivery data
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v1.rda")
+del_final=delivery_final_v1 
+
+# code-annotations: any-pe status
+pe_any=code_final %>% ungroup() %>%
+  select(mom_id,part_dob,gest_start_date,pe_dx_date,pe_dx_category)
+  
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  pe_any,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) %>%
+  select(-gest_start_date.y) %>%
+  rename("gest_start_date"="gest_start_date.x")
+
+delivery_final_v2=merge_final %>%
+  select(-pe_dx_date) %>%
+  rename("prenatal_pe_logic"="pe_dx_category")
+
+# EXPORT DATA
+
+# file name
+file_name="delivery_linked_v2.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v2 %>% save(delivery_final_v2, file=data_export_path)
+
+```
+
+
