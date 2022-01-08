@@ -1,0 +1,112 @@
+---
+title: "compute and format pe-severity data"
+author: "Dominick Lemas"
+date: "01/08/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        January 08, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) compute and format the pe-severity data.
+
+# Citation for ICD9 PE codes: https://www.ncbi.nlm.nih.gov/books/NBK442039/table/sb222.t7/
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+# library(fuzzyjoin)
+
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# df: import perinatal icd-code EHR data (1:n structure)
+load("~/ehr-preeclampsia-model/data/processed/pe_codes_dob_v0.rda")
+
+# delivery_final_v1: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v3.rda")
+
+```
+
+```{r, message=FALSE}
+
+# PREP ICD CODE 1:N DATA
+
+# ICD codes
+icd_codes=pe_codes %>%
+  filter(perinatal_dx_subcategory=="severe-pe") %>% pull(perinatal_dx_code)
+
+# Define PE-severity
+ehr_logic=pe_dx_dob_v0 %>% ungroup() %>%
+  filter(!is.na(part_dob)) %>%               # this (largely) removes postnatal codes
+  mutate(pe_severe_logic=if_else(perinatal_dx_code %in% icd_codes, 1, 0))  %>%
+  select(mom_id,part_dob,pe_severe_logic) %>% 
+  group_by(mom_id,part_dob) %>% 
+  summarize(pe_severe = max(pe_severe_logic)) # picks the max value w/in mom-id/DOB
+
+# IDs
+mom_unique=unique(ehr_logic$mom_id)
+
+```
+
+
+```{r, message=FALSE}
+
+# MERGE INTO LATEST DATA VERSION 
+
+# delivery data
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v3.rda")
+del_final=delivery_final_v3 
+
+# ICD-Data: pe-onset status
+pe_severity=ehr_logic
+  
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  pe_severity,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) 
+
+# EXPORT DATA
+delivery_final_v4=merge_final
+
+# file name
+file_name="delivery_linked_v4.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v4 %>% save(delivery_final_v4, file=data_export_path)
+
+```
+
+
