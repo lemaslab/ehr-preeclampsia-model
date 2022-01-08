@@ -133,8 +133,8 @@ df2 = df %>%
 
 # file name
 file_name="mom_perinatal_codes.rda"
-# data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
-data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+ data_export_directory=paste0("~/ehr-preeclampsia-model/data/") 
+#data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_export_path=paste0(data_export_directory,file_name)
 df %>% save(df, file=data_export_path)
 
