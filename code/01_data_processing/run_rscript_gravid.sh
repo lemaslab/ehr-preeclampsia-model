@@ -4,7 +4,7 @@
 #SBATCH --mail-user=djlemas@ufl.edu   # Where to send mail	
 #SBATCH --nodes=2                    # Run all processes on a single node	
 #SBATCH --mem=10gb   # Per processor memory
-#SBATCH --time=00:40:00   # Walltime
+#SBATCH --time=01:30:00   # Walltime
 #SBATCH --output=r_job.%j.out   # Name output file 
 #Record the time and compute node the job ran on
 date; hostname; pwd
