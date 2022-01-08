@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=R_test   #Job name	
+#SBATCH --job-name=pe_link   #Job name	
 #SBATCH --mail-type=END,FAIL   # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=djlemas@ufl.edu   # Where to send mail	
 #SBATCH --nodes=2                    # Run all processes on a single node	
@@ -12,6 +12,6 @@ date; hostname; pwd
 module load R
 
 #Run R script 
-Rscript 00_link_gravid_to_delivery.R
+Rscript 02_multiples.R
 
 date

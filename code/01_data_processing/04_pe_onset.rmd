@@ -1,0 +1,117 @@
+---
+title: "compute and format pe-onset data"
+author: "Dominick Lemas"
+date: "01/08/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        January 08, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) compute and format the pe-onset data.
+
+# Citation for ICD9 PE codes: https://www.ncbi.nlm.nih.gov/books/NBK442039/table/sb222.t7/
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+# library(fuzzyjoin)
+
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# df: import perinatal icd-code EHR data (1:n structure)
+load("~/ehr-preeclampsia-model/data/processed/pe_codes_dob_v0.rda")
+
+# delivery_final_v1: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v2.rda")
+
+```
+
+```{r, message=FALSE}
+
+# PREP ICD CODE 1:N DATA
+
+# ICD outcomes
+code_all=pe_codes$perinatal_dx_code
+
+# Define PE-onset
+ehr_subset=pe_dx_dob_v0 %>%
+  filter(!is.na(part_dob)) %>%
+  mutate(pe_early=if_else(weeks<34, 1, 0),
+         pe_late=if_else(weeks>=34, 1, 0)) %>% 
+  filter(!is.na(baby_gest_age_raw)) 
+
+dat=ehr_subset %>% ungroup() %>%
+  select(mom_id,part_dob,pe_early,pe_late) %>%
+  group_by(mom_id,part_dob) %>% slice(1)
+
+# IDs
+mom_unique=unique(dat$mom_id)
+
+```
+
+
+```{r, message=FALSE}
+
+# PRE_ECLAMPSIA ONSET MERGE
+
+# MERGE pe-ONSET data into delivery
+
+# delivery data
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v2.rda")
+del_final=delivery_final_v2 
+
+# ICD-Data: pe-onset status
+pe_onset=dat
+  
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  pe_onset,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) 
+
+# EXPORT DATA
+
+delivery_final_v3=merge_final
+
+# file name
+file_name="delivery_linked_v3.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v3 %>% save(delivery_final_v3, file=data_export_path)
+
+```
+
+
