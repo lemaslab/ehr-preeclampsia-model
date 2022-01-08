@@ -1,62 +1,26 @@
----
-title: "compute and format pe data"
-author: "Dominick Lemas & Hailey Ballard"
-date: "01/08/2022"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r, include=FALSE}
-##-------------- 
-# **************************************************************************** #
-# ***************                Project Overview              *************** #
-# **************************************************************************** #
-# Author:      Dominick Lemas
-# Date:        January 08, 2022
-# IRB:         IRB protocol IRB201601899  
-#
-# version: R 4.1.2 (2020-10-10)
-# version: Rstudio 2021.09.1 Build 372  
-
-# **************************************************************************** #
-# ***************                Objective                     *************** #
-# **************************************************************************** #
-
-# (1) compute and format the pe data.
-
-# Citation for ICD9 PE codes: https://www.ncbi.nlm.nih.gov/books/NBK442039/table/sb222.t7/
-
-```
+install.packages("tidyverse")
+install.packages("fuzzyjoin")
+install.packages("readxl")
 
 
-```{r, message=FALSE}
-# **************************************************************************** #
-# ***************                Library                       *************** #
-# **************************************************************************** #
 library(tidyverse)
 library(readxl)
 library(fuzzyjoin)
 
-```
-
-
-```{r, message=FALSE}
 
 # pe_codes: import icd-code information (1:1 structure)
-source("~/ehr-preeclampsia-model/code/utils/params.R")
+data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
+data.dir=paste0("~/blue/djlemas/pe_prediction/data/")
+data_import_directory=paste0(data.dir,data.file.name)
+pe_codes=read_xlsx(data_import_directory, sheet = "pe", range = NULL, col_names = TRUE,
+                   col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
 
 # df: import perinatal icd-code EHR data (1:n structure)
-load("~/ehr-preeclampsia-model/data/processed/mom_perinatal_raw.rda")
+load("~/blue/djlemas/pe_prediction/data/mom_perinatal_raw.rda")
 
 # delivery_final_v1: import linked delivery data (1:1 structure)
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v1.rda")
+load("~/blue/djlemas/pe_prediction/data/delivery_linked_v1.rda")
 
-```
-
-```{r, message=FALSE}
 
 # PREP ICD CODE 1:N DATA
 
@@ -79,10 +43,6 @@ ehr_subset= ehr_codes2 %>%
 # IDs
 mom_unique=unique(ehr_subset$mom_id)
 
-```
-
-
-```{r, message=FALSE}
 
 # PREP the DELIVERY 1:1 Data
 
@@ -94,9 +54,6 @@ data_final=delivery_final_v1 %>%
   group_by(mom_id,part_dob) %>% slice(1) %>%
   select(-ehr_logic)
 
-```
-
-```{r, message=FALSE}
 
 # START LOOP (RUN on UFRC)
 chunks=length(unique(mom_unique)) 
@@ -129,8 +86,8 @@ pe_dx_dob_v0=data_ready
 
 # file name
 file_name="pe_codes_dob_v0.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("~/blue/djlemas/pe_prediction/") 
 data_export_path=paste0(data_export_directory,file_name)
 pe_dx_dob_v0 %>% save(pe_dx_dob_v0, file=data_export_path)
 
-```
+
