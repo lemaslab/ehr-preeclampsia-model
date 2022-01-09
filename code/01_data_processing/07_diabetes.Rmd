@@ -36,7 +36,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 library(tidyverse)
 library(readxl)
-library(fuzzyjoin)
+# library(fuzzyjoin)
 
 ```
 
@@ -126,4 +126,136 @@ diab_dx_dob_v0 %>% save(diab_dx_dob_v0, file=data_export_path)
 
 ```
 
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+
+```
+
+```{r, message=FALSE}
+
+# SWEEP
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# df: import perinatal icd-code EHR data (1:n structure)
+load("~/ehr-preeclampsia-model/data/processed/diab_codes_dob_v0.rda")
+
+# delivery_final_v1: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v5.rda")
+
+```
+
+```{r, message=FALSE}
+
+# DIABETES-COMPLICATED
+
+# PREP ICD CODE 1:N DATA
+
+# ICD codes
+icd_codes=diab_codes %>%
+  filter(perinatal_dx_subcategory=="complicated") %>% pull(perinatal_dx_code)
+
+# Define diab_comp
+ehr_logic=diab_dx_dob_v0 %>% ungroup() %>%
+  filter(!is.na(part_dob)) %>%               # this (largely) removes postnatal codes
+  mutate(diab_comp_logic=if_else(perinatal_dx_code %in% icd_codes, 1, 0))  %>%
+  select(mom_id,part_dob,diab_comp_logic) %>% 
+  group_by(mom_id,part_dob) %>% 
+  summarize(diab_comp = max(diab_comp_logic)) # picks the max value w/in mom-id/DOB
+
+# IDs
+mom_unique=unique(ehr_logic$mom_id)
+
+```
+
+```{r, message=FALSE}
+
+# MERGE INTO LATEST DATA VERSION 
+
+# delivery data
+del_final=delivery_final_v5 
+
+# ICD-Data: pe-onset status
+diab_comp=ehr_logic
+  
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  diab_comp,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) 
+
+# EXPORT DATA
+delivery_final_v6=merge_final
+
+# file name
+file_name="delivery_linked_v6.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v6 %>% save(delivery_final_v6, file=data_export_path)
+
+```
+
+
+```{r, message=FALSE}
+
+# DIABETES-UNCOMPLICATED
+
+# PREP ICD CODE 1:N DATA
+
+# ICD codes
+icd_codes=diab_codes %>%
+  filter(perinatal_dx_subcategory=="uncomplicated") %>% pull(perinatal_dx_code)
+
+# Define diab_uncomp
+ehr_logic=diab_dx_dob_v0 %>% ungroup() %>%
+  filter(!is.na(part_dob)) %>%               # this (largely) removes postnatal codes
+  mutate(diab_uncomp_logic=if_else(perinatal_dx_code %in% icd_codes, 1, 0))  %>%
+  select(mom_id,part_dob,diab_uncomp_logic) %>% 
+  group_by(mom_id,part_dob) %>% 
+  summarize(diab_uncomp = max(diab_uncomp_logic)) # picks the max value w/in mom-id/DOB
+
+# IDs
+mom_unique=unique(ehr_logic$mom_id)
+
+```
+
+```{r, message=FALSE}
+
+# MERGE INTO LATEST DATA VERSION 
+
+# delivery data
+del_final=delivery_final_v6 
+
+# ICD-Data: pe-onset status
+diab_uncomp=ehr_logic
+  
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  diab_uncomp,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) 
+
+# EXPORT DATA
+delivery_final_v7=merge_final
+
+# file name
+file_name="delivery_linked_v7.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v7 %>% save(delivery_final_v7, file=data_export_path)
+
+```
 
