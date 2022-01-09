@@ -126,4 +126,78 @@ pulmo_dx_dob_v0 %>% save(pulmo_dx_dob_v0, file=data_export_path)
 
 ```
 
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
 
+```
+
+```{r, message=FALSE}
+
+# SWEEP
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# df: import perinatal icd-code EHR data (1:n structure)
+load("~/ehr-preeclampsia-model/data/processed/pulmo_codes_dob_v0.rda")
+
+# delivery_final_v1: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v7.rda")
+
+```
+
+```{r, message=FALSE}
+
+# PREP ICD CODE 1:N DATA
+
+# ICD codes
+icd_codes=pulmo_codes %>%
+  filter(perinatal_dx_category=="pulmonary") %>% pull(perinatal_dx_code)
+
+# Define pulmonary
+ehr_logic=pulmo_dx_dob_v0 %>% ungroup() %>%
+  filter(!is.na(part_dob)) %>%               # this (largely) removes postnatal codes
+  mutate(pulmo_logic=if_else(perinatal_dx_code %in% icd_codes, 1, 0))  %>%
+  select(mom_id,part_dob,pulmo_logic) %>% 
+  group_by(mom_id,part_dob) %>% 
+  summarize(pulmonary = max(pulmo_logic)) # picks the max value w/in mom-id/DOB
+
+# IDs
+mom_unique=unique(ehr_logic$mom_id)
+
+```
+
+```{r, message=FALSE}
+
+# MERGE INTO LATEST DATA VERSION 
+
+# delivery data
+del_final=delivery_final_v7 
+
+# ICD-Data: pe-onset status
+pulmonary=ehr_logic
+  
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  pulmonary,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) 
+
+# EXPORT DATA
+delivery_final_v8=merge_final
+
+# file name
+file_name="delivery_linked_v8.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v8 %>% save(delivery_final_v8, file=data_export_path)
+
+```
