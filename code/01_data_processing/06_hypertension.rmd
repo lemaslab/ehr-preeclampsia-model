@@ -60,7 +60,7 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v4.rda")
 
 # ICD codes
 icd_codes=hyper_codes %>%
-  filter(perinatal_dx_subcategory=="complicated") %>% pull(perinatal_dx_code)
+  filter(perinatal_dx_category=="hypertension") %>% pull(perinatal_dx_code)
 
 # EHR data
 ehr_codes=df %>%
@@ -123,3 +123,7 @@ file_name="hypertension_codes_dob_v0.rda"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 hyper_dx_dob_v0 %>% save(hyper_dx_dob_v0, file=data_export_path)
+
+```
+
+

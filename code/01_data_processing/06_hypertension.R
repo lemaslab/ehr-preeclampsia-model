@@ -25,7 +25,7 @@ load("~/blue/djlemas/pe_prediction/data/delivery_linked_v4.rda")
 
 # ICD codes
 icd_codes=hyper_codes %>%
-  filter(perinatal_dx_subcategory=="complicated") %>% pull(perinatal_dx_code)
+  filter(perinatal_dx_category=="hypertension") %>% pull(perinatal_dx_code)
 
 # EHR data
 ehr_codes=df %>%
