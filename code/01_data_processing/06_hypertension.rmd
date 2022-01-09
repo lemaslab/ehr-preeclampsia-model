@@ -30,7 +30,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-
 ```{r, message=FALSE}
 # **************************************************************************** #
 # ***************                Library                       *************** #
@@ -126,4 +125,79 @@ hyper_dx_dob_v0 %>% save(hyper_dx_dob_v0, file=data_export_path)
 
 ```
 
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+
+```
+
+```{r, message=FALSE}
+
+# SWEEP
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# df: import perinatal icd-code EHR data (1:n structure)
+load("~/ehr-preeclampsia-model/data/processed/hyper_codes_dob_v0.rda")
+
+# delivery_final_v1: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v4.rda")
+
+```
+
+```{r, message=FALSE}
+
+# PREP ICD CODE 1:N DATA
+
+# ICD codes
+icd_codes=hyper_codes %>%
+  filter(perinatal_dx_subcategory=="complicated") %>% pull(perinatal_dx_code)
+
+# Define PE-severity
+ehr_logic=hyper_dx_dob_v0 %>% ungroup() %>%
+  filter(!is.na(part_dob)) %>%               # this (largely) removes postnatal codes
+  mutate(hypertension_logic=if_else(perinatal_dx_code %in% icd_codes, 1, 0))  %>%
+  select(mom_id,part_dob,hypertension_logic) %>% 
+  group_by(mom_id,part_dob) %>% 
+  summarize(hypertension = max(hypertension_logic)) # picks the max value w/in mom-id/DOB
+
+# IDs
+mom_unique=unique(ehr_logic$mom_id)
+
+```
+
+```{r, message=FALSE}
+
+# MERGE INTO LATEST DATA VERSION 
+
+# delivery data
+del_final=delivery_final_v4 
+
+# ICD-Data: pe-onset status
+hypertension=ehr_logic
+  
+
+# merge ICD code annotations into ICD data
+merge_final=left_join(
+  del_final,
+  hypertension,
+  by = c("mom_id","part_dob"),
+  copy = FALSE,
+  suffix = c(".x", ".y"),
+  keep = FALSE) 
+
+# EXPORT DATA
+delivery_final_v5=merge_final
+
+# file name
+file_name="delivery_linked_v5.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v5 %>% save(delivery_final_v5, file=data_export_path)
+
+```
 
