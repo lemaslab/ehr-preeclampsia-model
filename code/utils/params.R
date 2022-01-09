@@ -53,6 +53,13 @@ pe_codes=read_xlsx(data_import_directory, sheet = "pe", range = NULL, col_names 
                    col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
 
 # hypertension
-# pe
 hyper_codes=read_xlsx(data_import_directory, sheet = "hypertension", range = NULL, col_names = TRUE,
                    col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
+
+# diabetes
+diab_codes=read_xlsx(data_import_directory, sheet = "diabetes", range = NULL, col_names = TRUE,
+                      col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
+
+# pulmonary
+pulmo_codes=read_xlsx(data_import_directory, sheet = "pulmonary", range = NULL, col_names = TRUE,
+                     col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
