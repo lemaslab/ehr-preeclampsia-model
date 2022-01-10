@@ -1,0 +1,195 @@
+---
+title: "compute and format analysis data"
+author: "Dominick Lemas"
+date: "01/10/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        January 10, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) compute and format the analysis-ready data.
+
+# To access the shiny app, you’ll first need to install docker app, docker pull dgarmire/coxnnet-v2:1.0.1. 
+# Then start docker and input: 
+# docker run --rm -p 8091:8091 -d -it dgarmire/coxnnet-v2:1.0.1 
+# in you terminal. 
+# Finally, navigate to 
+# 127.0.0.1:8091 
+# in the browser, where you can upload the test data. It may take up to 10 mins to download all 
+# required material the first time you access the app, but the actual running time should be very brief.
+# upload test_data_example.csv.
+# goal is to select 
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readr)
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/utils.R")
+
+```
+
+```{r, message=FALSE}
+
+# load demo data. This data can run in shiny app. 
+demo_data <- read_csv("~/ehr-preeclampsia-model/data/demo/test_data_example.csv")
+
+# delivery_final_v8: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
+ehr_data=delivery_final_v8
+
+```
+
+```{r, message=FALSE}
+
+# PREP DEMO DATA
+
+# limit to the data of interest with variables names, then add the other variables as "empty" data with 0. 
+
+# demo-final
+demo_ready=demo_data %>%
+  select(SeverePE,eope,Gestational_Age,EPIS_GRAVIDA_COUNT,EPIS_PARA_COUNT,NUMBER_OF_FETUSES,
+         HypertensionUncomplicated,DiabetesComplicated,DiabetesUncomplicated,PulmonaryCirculationDisorders,age)
+
+all_names=names(demo_data)
+base_names=names(demo_ready)
+
+other_names=outersect(all_names,base_names)
+
+demo_ready_v1 =demo_ready %>%
+  add_column(AlcoholAbuse= 0, anxiety=0,
+             BloodLossAnemia=0,CardiacArrhythmias=0,
+             ChronicPulmonaryDisease=0, Coagulopathy=0,
+             CongestiveHeartFailure=0, DeficiencyAnemia=0,
+             Depression=0, DrugAbuse=0, FluidElectrolyteDisorders=0,
+             HypertensionComplicated=0, Hypothyroidism=0,
+             IllegalDrugUserStatusMapped.No=0, IllegalDrugUserStatusMapped.Not.Asked=0,
+             IllegalDrugUserStatusMapped.Yes=0, LiverDisease=0, Lymphoma=0,
+             MaritalStatusName.Married=0, MaritalStatusName.Unmarried=0,
+             MetastaticCancer=0, Obesity=0, OtherNeurologicalDisorders=0,
+             Paralysis=0, PepticUlcerDiseaseExcludingBleeding=0,
+             PeripheralVascularDisorders=0, Psychoses=0, RaceName.African.American=0,
+             RaceName.American.Indian.or.Alaska.Native=0, RaceName.Asian=0, 
+             RaceName.Caucasian=0, RaceName.Native.Hawaiian.and.Other.Pacific.Islander=0,
+             RaceName.Other=0, RenalFailure=0, RheumatoidArthritisCollagenVascularDiseases=0,
+             SexuallyActiveStatusMapped.No=0, SexuallyActiveStatusMapped.Not.Asked=0,
+             SexuallyActiveStatusMapped.Not.Currently=0, SexuallyActiveStatusMapped.Yes=0,
+             SmokingStatusMapped.Current=0, SmokingStatusMapped.Former=0, SmokingStatusMapped.Never=0,
+             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
+   
+   # file name
+file_name="demo_ready_v1.csv"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/demo/") 
+data_export_path=paste0(data_export_directory,file_name)
+write_csv(demo_ready_v1, file=data_export_path)
+
+# shiny ap output (all predictors): C-index of Cox-nnet model  : 0.542 
+#                                   C-index of the Cox-ph model: 0.532
+
+# shiny ap output (base predictors): C-index of Cox-nnet model  : 0.516 
+#                                   C-index of the Cox-ph model: 0.474
+
+```
+
+```{r, message=FALSE}
+
+# PREP EHR DATA
+
+# limit to the data of interest with variables names, then add the other variables as "empty" data with 0. 
+
+# demo-final
+ehr_ready=ehr_data %>%
+  select(-part_id,-multgest_dx_type,-multgest_icd_code,-baby_gest_age_raw,
+         -delivery_admit_date,-gest_start_date,-pregnancy_start_date,-multgest_dx_date,
+         -multgest_dx_code,-multgest_dx_descrip,-multgest_dx_gestation,-multgest_dx_category) %>%
+  #mutate(multgest_dx_subcategory=as_factor(multgest_dx_subcategory)) %>%
+  mutate(NUMBER_OF_FETUSES=recode(multgest_dx_subcategory,
+                                  twin="2", 
+                                  triplet="3",
+                                  multiple="3",
+                                  quadruplet="3",
+                                  .missing = "1")) %>%
+  select(-multgest_dx_subcategory,-days,-pe_late,-prenatal_pe_logic) %>%
+ rename(Gestational_Age = weeks, 
+               EPIS_GRAVIDA_COUNT=gravidity,
+               EPIS_PARA_COUNT=parity, 
+               age=mom_age_delivery,
+               eope=pe_early,
+               SeverePE=pe_severe,
+               HypertensionUncomplicated=hypertension,
+               DiabetesComplicated=diab_comp,
+               DiabetesUncomplicated=diab_uncomp,
+               PulmonaryCirculationDisorders=pulmonary) %>%
+  group_by(mom_id, part_dob) %>% slice(1) %>% ungroup() %>%
+  mutate(eope = ifelse(is.na(eope), 0, eope),
+         SeverePE = ifelse(is.na(SeverePE), 0, SeverePE),
+         HypertensionUncomplicated = ifelse(is.na(HypertensionUncomplicated), 0, HypertensionUncomplicated),
+         DiabetesComplicated = ifelse(is.na(DiabetesComplicated), 0, DiabetesComplicated),
+         DiabetesUncomplicated = ifelse(is.na(DiabetesUncomplicated), 0, DiabetesUncomplicated),
+         PulmonaryCirculationDisorders = ifelse(is.na(PulmonaryCirculationDisorders), 0, PulmonaryCirculationDisorders)) %>%
+  select(-mom_id,-baby_id,-part_dob)
+
+  
+
+```  
+
+```{r, message=FALSE}
+
+# output EHR DATA
+  
+data_ready_v0 =ehr_ready %>%
+  add_column(AlcoholAbuse= 0, anxiety=0,
+             
+             BloodLossAnemia=0,CardiacArrhythmias=0,
+             ChronicPulmonaryDisease=0, Coagulopathy=0,
+             CongestiveHeartFailure=0, DeficiencyAnemia=0,
+             Depression=0, DrugAbuse=0, FluidElectrolyteDisorders=0,
+             HypertensionComplicated=0, Hypothyroidism=0,
+             IllegalDrugUserStatusMapped.No=0, IllegalDrugUserStatusMapped.Not.Asked=0,
+             IllegalDrugUserStatusMapped.Yes=0, LiverDisease=0, Lymphoma=0,
+             MaritalStatusName.Married=0, MaritalStatusName.Unmarried=0,
+             MetastaticCancer=0, Obesity=0, OtherNeurologicalDisorders=0,
+             Paralysis=0, PepticUlcerDiseaseExcludingBleeding=0,
+             PeripheralVascularDisorders=0, Psychoses=0, RaceName.African.American=0,
+             RaceName.American.Indian.or.Alaska.Native=0, RaceName.Asian=0, 
+             RaceName.Caucasian=0, RaceName.Native.Hawaiian.and.Other.Pacific.Islander=0,
+             RaceName.Other=0, RenalFailure=0, RheumatoidArthritisCollagenVascularDiseases=0,
+             SexuallyActiveStatusMapped.No=0, SexuallyActiveStatusMapped.Not.Asked=0,
+             SexuallyActiveStatusMapped.Not.Currently=0, SexuallyActiveStatusMapped.Yes=0,
+             SmokingStatusMapped.Current=0, SmokingStatusMapped.Former=0, SmokingStatusMapped.Never=0,
+             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
+   
+   # file name
+file_name="data_ready_v0.csv"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/demo/") 
+data_export_path=paste0(data_export_directory,file_name)
+write_csv(data_ready_v0, file=data_export_path)
+
+# shiny ap output (base predictors): C-index of Cox-nnet model  : 0.491 
+#                                   C-index of the Cox-ph model: 0.544
+
+```
