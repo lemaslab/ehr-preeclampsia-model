@@ -32,7 +32,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, message=FALSE}
 # **************************************************************************** #
-# ***************                Library                       *************** #
+# ***************                Library- PART 1               *************** #
 # **************************************************************************** #
 library(tidyverse)
 library(readxl)
@@ -127,9 +127,10 @@ hyper_dx_dob_v0 %>% save(hyper_dx_dob_v0, file=data_export_path)
 
 ```{r, message=FALSE}
 # **************************************************************************** #
-# ***************                Library                       *************** #
+# ***************                Library- Part 2               *************** #
 # **************************************************************************** #
 library(tidyverse)
+library(dplyr)
 library(readxl)
 
 ```
@@ -157,7 +158,7 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v4.rda")
 icd_codes=hyper_codes %>%
   filter(perinatal_dx_subcategory=="complicated") %>% pull(perinatal_dx_code)
 
-# Define PE-severity
+# Define hypertension-complicated
 ehr_logic=hyper_dx_dob_v0 %>% ungroup() %>%
   filter(!is.na(part_dob)) %>%               # this (largely) removes postnatal codes
   mutate(hypertension_logic=if_else(perinatal_dx_code %in% icd_codes, 1, 0))  %>%
