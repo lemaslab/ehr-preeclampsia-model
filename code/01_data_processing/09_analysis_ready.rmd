@@ -163,7 +163,7 @@ ehr_ready=ehr_data %>%
 
 # output EHR DATA
   
-data_ready_v0 =ehr_ready %>%
+data_ready_v1 =ehr_ready %>%
   add_column(AlcoholAbuse= 0, anxiety=0,
              
              BloodLossAnemia=0,CardiacArrhythmias=0,
@@ -186,12 +186,12 @@ data_ready_v0 =ehr_ready %>%
              SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
    
    # file name
-file_name="data_ready_v0.csv"
+file_name="data_ready_v1.csv"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/demo/") 
 data_export_path=paste0(data_export_directory,file_name)
-write_csv(data_ready_v0, file=data_export_path)
+write_csv(data_ready_v1, file=data_export_path)
 
-# shiny ap output (base predictors): C-index of Cox-nnet model  : 0.491 
-#                                   C-index of the Cox-ph model: 0.544
+# shiny ap output (base predictors): C-index of Cox-nnet model  : 0.49 
+#                                   C-index of the Cox-ph model: 0.543
 
 ```
