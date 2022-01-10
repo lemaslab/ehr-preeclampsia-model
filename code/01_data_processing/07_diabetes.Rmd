@@ -131,6 +131,7 @@ diab_dx_dob_v0 %>% save(diab_dx_dob_v0, file=data_export_path)
 # ***************                Library                       *************** #
 # **************************************************************************** #
 library(tidyverse)
+library(dplyr)
 library(readxl)
 
 ```
@@ -180,7 +181,7 @@ mom_unique=unique(ehr_logic$mom_id)
 # delivery data
 del_final=delivery_final_v5 
 
-# ICD-Data: pe-onset status
+# ICD-Data: diabetes complicated
 diab_comp=ehr_logic
   
 
