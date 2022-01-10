@@ -36,7 +36,9 @@ knitr::opts_chunk$set(echo = TRUE)
 # in the browser, where you can upload the test data. It may take up to 10 mins to download all 
 # required material the first time you access the app, but the actual running time should be very brief.
 # upload test_data_example.csv.
-# goal is to select 
+# goal is to create analysis-ready data.
+# goal complete. 
+# need to check over data again. 
 
 ```
 
