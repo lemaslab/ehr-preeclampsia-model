@@ -131,6 +131,7 @@ pulmo_dx_dob_v0 %>% save(pulmo_dx_dob_v0, file=data_export_path)
 # ***************                Library                       *************** #
 # **************************************************************************** #
 library(tidyverse)
+library(dplyr)
 library(readxl)
 
 ```
