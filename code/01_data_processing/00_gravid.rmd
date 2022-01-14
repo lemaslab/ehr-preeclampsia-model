@@ -124,21 +124,3 @@ data_export_path=paste0(data_export_directory,file_name)
 delivery %>% save(delivery, file=data_export_path)
   
 ```
-
-```{r, message=FALSE}
-
-# load data
-
-load("~/ehr-preeclampsia-model/data/processed/mombaby_linked_clinical.rda")
-
-length(unique(delivery$baby_id))
-
-multi=which(duplicated(delivery$baby_id))
-
-df=delivery %>% filter(row_number() %in% multi)
-
-df$mom_id.x
-
-
-
-```
