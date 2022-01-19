@@ -143,3 +143,11 @@ ggplot(delivery_final_v8, aes(x = multgest_dx_subcategory)) +
 
 ```
 
+```{r, message=FALSE}
+
+# Distribution of Pulmonary Circulation Disorders 
+
+ggplot(delivery_final_v8, aes(x = pulmonary)) +
+  geom_bar()
+
+```
