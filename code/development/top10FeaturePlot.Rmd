@@ -1,0 +1,145 @@
+---
+title: "Analysis - Data Distributions"
+author: "Hailey Ballard"
+date: "1/19/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        January 19, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073  
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+# PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
+# Note: vpn must be active
+
+# objective: export all perinatal ICD9/10 codes from redcap and cache as rda file.  
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+```
+
+```{r, message=FALSE}
+
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
+
+```
+
+
+```{r, message=FALSE}
+
+# Distribution of Gestational Age 
+
+ggplot(delivery_final_v8, aes(x = weeks)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Maternal Age
+
+ggplot(delivery_final_v8, aes(x = mom_age_delivery)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Parity
+
+ggplot(delivery_final_v8, aes(x = parity)) +
+  geom_bar()
+
+```
+
+
+```{r, message=FALSE}
+
+# Distribution of Gravidity
+
+ggplot(delivery_final_v8, aes(x = gravidity)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Severe PE
+
+ggplot(delivery_final_v8, aes(x = pe_severe)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Early Onset PE
+
+ggplot(delivery_final_v8, aes(x = pe_early)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Uncomplicated Hypertension
+
+ggplot(delivery_final_v8, aes(x = hypertension)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Uncomplicated Diabetes
+
+ggplot(delivery_final_v8, aes(x = diab_uncomp)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Complicated Diabetes
+
+ggplot(delivery_final_v8, aes(x = diab_comp)) +
+  geom_bar()
+
+```
+
+```{r, message=FALSE}
+
+# Distribution of Multiples 
+
+ggplot(delivery_final_v8, aes(x = multgest_dx_subcategory)) +
+  geom_bar()
+
+```
+
