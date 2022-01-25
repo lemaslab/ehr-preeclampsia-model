@@ -61,8 +61,8 @@ source("~/ehr-preeclampsia-model/code/utils/utils.R")
 demo_data <- read_csv("~/ehr-preeclampsia-model/data/demo/test_data_example.csv")
 
 # delivery_final_v8: import linked delivery data (1:1 structure)
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
-ehr_data=delivery_final_v8
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+ehr_data=delivery_final_v9
 
 ```
 

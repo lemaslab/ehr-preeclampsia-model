@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 ```{r, include=FALSE}
@@ -24,15 +25,13 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 # ***************                Description                   *************** #
 # **************************************************************************** #
-# PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
-# Note: vpn must be active
 
-# objective: export all perinatal ICD9/10 codes from redcap and cache as rda file.  
+# objective: Generate Distribution plots for top 10 features.  
 
 ```
 
 
-```{r, message=FALSE}
+```{r, include=FALSE}
 # **************************************************************************** #
 # ***************                Library                       *************** #
 # **************************************************************************** #
@@ -45,9 +44,9 @@ library(plyr)
 library(ggplot2)
 ```
 
-```{r, message=FALSE}
-
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
+```{r, include=FALSE}
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+data=delivery_final_v9
 
 ```
 
@@ -56,7 +55,7 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
 
 # Distribution of Gestational Age 
 
-ggplot(delivery_final_v8, aes(x = weeks)) +
+ggplot(data, aes(x = weeks)) +
   geom_bar()
 
 ```
@@ -65,7 +64,7 @@ ggplot(delivery_final_v8, aes(x = weeks)) +
 
 # Distribution of Maternal Age
 
-ggplot(delivery_final_v8, aes(x = mom_age_delivery)) +
+ggplot(data, aes(x = mom_age_delivery)) +
   geom_bar()
 
 ```
@@ -74,7 +73,7 @@ ggplot(delivery_final_v8, aes(x = mom_age_delivery)) +
 
 # Distribution of Parity
 
-ggplot(delivery_final_v8, aes(x = parity)) +
+ggplot(data, aes(x = parity)) +
   geom_bar()
 
 ```
@@ -84,7 +83,7 @@ ggplot(delivery_final_v8, aes(x = parity)) +
 
 # Distribution of Gravidity
 
-ggplot(delivery_final_v8, aes(x = gravidity)) +
+ggplot(data, aes(x = gravidity)) +
   geom_bar()
 
 ```
@@ -93,7 +92,7 @@ ggplot(delivery_final_v8, aes(x = gravidity)) +
 
 # Distribution of Severe PE
 
-ggplot(delivery_final_v8, aes(x = pe_severe)) +
+ggplot(data, aes(x = pe_severe)) +
   geom_bar()
 
 ```
@@ -102,7 +101,7 @@ ggplot(delivery_final_v8, aes(x = pe_severe)) +
 
 # Distribution of Early Onset PE
 
-ggplot(delivery_final_v8, aes(x = pe_early)) +
+ggplot(data, aes(x = pe_early)) +
   geom_bar()
 
 ```
@@ -111,7 +110,7 @@ ggplot(delivery_final_v8, aes(x = pe_early)) +
 
 # Distribution of Uncomplicated Hypertension
 
-ggplot(delivery_final_v8, aes(x = hypertension)) +
+ggplot(data, aes(x = hypertension)) +
   geom_bar()
 
 ```
@@ -120,7 +119,7 @@ ggplot(delivery_final_v8, aes(x = hypertension)) +
 
 # Distribution of Uncomplicated Diabetes
 
-ggplot(delivery_final_v8, aes(x = diab_uncomp)) +
+ggplot(data, aes(x = diab_uncomp)) +
   geom_bar()
 
 ```
@@ -129,7 +128,7 @@ ggplot(delivery_final_v8, aes(x = diab_uncomp)) +
 
 # Distribution of Complicated Diabetes
 
-ggplot(delivery_final_v8, aes(x = diab_comp)) +
+ggplot(data, aes(x = diab_comp)) +
   geom_bar()
 
 ```
@@ -138,7 +137,7 @@ ggplot(delivery_final_v8, aes(x = diab_comp)) +
 
 # Distribution of Multiples 
 
-ggplot(delivery_final_v8, aes(x = multgest_dx_subcategory)) +
+ggplot(data, aes(x = multgest_dx_subcategory)) +
   geom_bar()
 
 ```
@@ -147,7 +146,7 @@ ggplot(delivery_final_v8, aes(x = multgest_dx_subcategory)) +
 
 # Distribution of Pulmonary Circulation Disorders 
 
-ggplot(delivery_final_v8, aes(x = pulmonary)) +
+ggplot(data, aes(x = pulmonary)) +
   geom_bar()
 
 ```

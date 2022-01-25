@@ -1,0 +1,68 @@
+---
+title: "Filter Final Dataset for PE"
+author: "Hailey Ballard"
+date: "01/25/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        January 25, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) Filter the complete dataset for ONLY individuals who have PE
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(dplyr)
+
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# delivery_final_v8: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
+
+```
+
+```{r, message=FALSE}
+
+#Create new dataframe that selects only participants who have prenatal preeclampsia diagnosis
+delivery_final_v9=filter(delivery_final_v8, prenatal_pe_logic == "preeclampsia")
+
+```
+
+```{r, message=FALSE}
+# file name
+file_name="delivery_linked_v9.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v8 %>% save(delivery_final_v9, file=data_export_path)
+```
+

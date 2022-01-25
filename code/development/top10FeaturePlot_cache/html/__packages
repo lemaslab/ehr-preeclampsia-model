@@ -1,0 +1,14 @@
+base
+keyringr
+tidyverse
+ggplot2
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+redcapAPI
+REDCapR
+plyr
