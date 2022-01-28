@@ -1,5 +1,5 @@
 ---
-title: "Analysis - Data Distributions"
+title: "Analysis - Scatterplot"
 author: "Hailey Ballard"
 date: "1/19/2022"
 output: html_document
@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 # Author:      Hailey Ballard
 # Date:        January 19, 2022
-# IRB:         IRB protocol IRB201601899  
+# IRB:         UF Health EHR 
 #
 # version: R version 4.0.3 (2020-10-10)
 # version: Rstudio version Version 1.3.1073  
@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # ***************                Description                   *************** #
 # **************************************************************************** #
 
-# objective: Generate Distribution plots for top 10 features.  
+# objective: Generate scatterplot of PE diagnosis type versus gestational age.  
 
 ```
 
@@ -50,103 +50,27 @@ data=delivery_final_v9
 
 ```
 
-
 ```{r, message=FALSE}
 
-# Distribution of Gestational Age 
+data$pe_time<-ifelse(data$pe_early == 1, "Early", "Late")
 
-ggplot(data, aes(x = gestational_age)) +
-  geom_bar()
+data$pe_strength<-ifelse(data$pe_severe == 1, "Severe", "Mild")
 
 ```
 
 ```{r, message=FALSE}
+x<-data$pe_time
+y<-data$gestational_age
 
-# Distribution of Maternal Age
-
-ggplot(data, aes(x = mom_age_delivery)) +
-  geom_bar()
-
-```
-
-```{r, message=FALSE}
-
-# Distribution of Parity
-
-ggplot(data, aes(x = parity)) +
-  geom_bar()
-
-```
-
-
-```{r, message=FALSE}
-
-# Distribution of Gravidity
-
-ggplot(data, aes(x = gravidity)) +
-  geom_bar()
+boxplot(y~x, main = "Time of PE Diagnosis vs. Gestational Age", xlab = "Time of PE Diagnosis", ylab = "Gestational Age (Weeks)")
 
 ```
 
 ```{r, message=FALSE}
+x<-data$pe_strength
+y<-data$gestational_age
 
-# Distribution of Severe PE
-
-ggplot(data, aes(x = pe_severe)) +
-  geom_bar()
-
-```
-
-```{r, message=FALSE}
-
-# Distribution of Early Onset PE
-
-ggplot(data, aes(x = pe_early)) +
-  geom_bar()
+boxplot(y~x, main = "Severity of PE Diagnosis vs. Gestational Age", xlab = "Severity of PE Diagnosis", ylab = "Gestational Age (Weeks)")
 
 ```
 
-```{r, message=FALSE}
-
-# Distribution of Uncomplicated Hypertension
-
-ggplot(data, aes(x = hypertension)) +
-  geom_bar()
-
-```
-
-```{r, message=FALSE}
-
-# Distribution of Uncomplicated Diabetes
-
-ggplot(data, aes(x = diab_uncomp)) +
-  geom_bar()
-
-```
-
-```{r, message=FALSE}
-
-# Distribution of Complicated Diabetes
-
-ggplot(data, aes(x = diab_comp)) +
-  geom_bar()
-
-```
-
-```{r, message=FALSE}
-
-# Distribution of Multiples 
-
-ggplot(data, aes(x = multgest_dx_subcategory)) +
-  geom_bar()
-
-```
-
-```{r, message=FALSE}
-
-# Distribution of Pulmonary Circulation Disorders 
-
-ggplot(data, aes(x = pulmonary)) +
-  geom_bar()
-
-```

@@ -56,6 +56,13 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
 #Create new dataframe that selects only participants who have prenatal preeclampsia diagnosis
 delivery_final_v9=filter(delivery_final_v8, prenatal_pe_logic == "preeclampsia")
 
+delivery_final_v9$days[is.na(delivery_final_v9$days)] = 0
+delivery_final_v9$gest_day_to_weeks <- as.numeric(delivery_final_v9$days)*(1/7)
+
+
+
+delivery_final_v9$gestational_age <- as.numeric(delivery_final_v9$weeks) + delivery_final_v9$gest_day_to_weeks
+
 ```
 
 ```{r, message=FALSE}
