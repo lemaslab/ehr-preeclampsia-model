@@ -37,8 +37,6 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 library(keyringr)
 library(tidyverse)
-library(redcapAPI)
-library(REDCapR)
 library(dplyr)
 library(plyr)
 library(ggplot2)

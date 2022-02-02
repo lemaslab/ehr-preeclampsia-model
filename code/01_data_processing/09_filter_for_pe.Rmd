@@ -62,6 +62,26 @@ delivery_final_v9$gest_day_to_weeks <- as.numeric(delivery_final_v9$days)*(1/7)
 
 
 delivery_final_v9$gestational_age <- as.numeric(delivery_final_v9$weeks) + delivery_final_v9$gest_day_to_weeks
+```
+
+
+```{r, message=FALSE}
+data_1<-subset(df_codes, part_id %in% delivery_final_v9$mom_id)
+
+data_1A<-data_1%>%
+  filter(str_detect(perinatal_dx_code, "O14"))
+
+data_third<-data_1A%>%
+  filter(str_detect(perinatal_dx_descrip, "third_trimester"))
+
+ids=unique(data_third$part_id)
+
+delivery_final_v9$pe_late_1 <- delivery_final_v9$mom_id
+
+mom_ids=delivery_final_v9$mom_id
+
+for (mom_id in delivery_final_v9){ 
+  if (ids == mom_ids) {delivery_final_v9$mom_id == "1"} else {(delivery_final_v9 == "0")}}
 
 ```
 
