@@ -74,14 +74,20 @@ data_1A<-data_1%>%
 data_third<-data_1A%>%
   filter(str_detect(perinatal_dx_descrip, "third_trimester"))
 
-ids=unique(data_third$part_id)
+ids<-data.frame(unique(data_third$part_id))
 
 delivery_final_v9$pe_late_1 <- delivery_final_v9$mom_id
 
-mom_ids=delivery_final_v9$mom_id
+mom_ids=data.frame(delivery_final_v9$mom_id)
+# 
 
-for (mom_id in delivery_final_v9){ 
-  if (ids == mom_ids) {delivery_final_v9$mom_id == "1"} else {(delivery_final_v9 == "0")}}
+for (x in mom_ids){
+  for (y in ids) {
+    delivery_final_v9$pe_late_1<-ifelse(x %in% y, "1", "0")
+    }
+  }
+
+
 
 ```
 
@@ -90,6 +96,6 @@ for (mom_id in delivery_final_v9){
 file_name="delivery_linked_v9.rda"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
-delivery_final_v8 %>% save(delivery_final_v9, file=data_export_path)
+delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```
 
