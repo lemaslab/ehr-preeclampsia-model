@@ -103,7 +103,7 @@ mom_unique=unique(mult_subset$mom_id)
 # rename data
 data_final=deliv_final %>%
   rename("mom_id"=mom_id.x) %>%
-  select(mom_id,part_dob,gest_start_date, baby_gest_age_raw, weeks,days) %>%
+  select(mom_id,part_dob,gest_start_date,baby_gest_age_raw, weeks,days) %>%
   mutate(multiple_logic=if_else(mom_id %in% mom_unique, 1, 0)) %>%
   filter(multiple_logic==1) %>%
   group_by(mom_id,part_dob) %>% slice(1)

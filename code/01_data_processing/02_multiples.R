@@ -49,7 +49,7 @@ mom_unique=unique(mult_subset$mom_id)
 # rename data
 data_final=deliv_final %>%
   rename("mom_id"=mom_id.x) %>%
-  select(mom_id,part_dob,gest_start_date) %>%
+  select(mom_id,part_dob,gest_start_date,baby_gest_age_raw, weeks,days) %>%
   mutate(multiple_logic=if_else(mom_id %in% mom_unique, 1, 0)) %>%
   filter(multiple_logic==1) %>%
   group_by(mom_id,part_dob) %>% slice(1)
@@ -82,12 +82,12 @@ for(i in 1:chunks){
 data_ready=bind_rows(pages) %>%
   rename("mom_id"="mom_id.x")
 
-multgest_dx_dob_v0=data_ready
+multgest_dx_dob_v1=data_ready
 
 # file name
-file_name="multiple_codes_dob_v0.rda"
+file_name="multiple_codes_dob_v1.rda"
 data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
 data_export_path=paste0(data_export_directory,file_name)
-multgest_dx_dob_v0 %>% save(multgest_dx_dob_v0, file=data_export_path)
+multgest_dx_dob_v1 %>% save(multgest_dx_dob_v1, file=data_export_path)
 
 
