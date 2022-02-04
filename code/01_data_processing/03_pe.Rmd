@@ -51,7 +51,7 @@ source("~/ehr-preeclampsia-model/code/utils/params.R")
 load("~/ehr-preeclampsia-model/data/processed/mom_perinatal_raw.rda")
 
 # delivery_final_v1: import linked delivery data (1:1 structure)
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v1.rda")
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v2.rda")
 
 ```
 
@@ -141,6 +141,11 @@ pe_dx_dob_v0 %>% save(pe_dx_dob_v0, file=data_export_path)
 
 # 1077 unique moms
 load("~/ehr-preeclampsia-model/data/processed/pe_dx_dob_v0.rda")
+# START HERE. I would use the data to:
+# compute the gestational age of "perinatal_dx_date"
+# days= b/w DOB and icd-date
+# gestage_sub=how many weeks and days
+# icd_gestage= gestage- gestage_sub (week day/7)- gestational age of infant at the time of encounter. 
 
 # remove dates past DOB and select the most recent code/visit before DOB. 
 dat=pe_dx_dob_v0 %>%
