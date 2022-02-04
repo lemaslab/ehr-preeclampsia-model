@@ -1,0 +1,75 @@
+---
+title: "Analysis - Density Plots"
+author: "Hailey Ballard"
+date: "2/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        February 1, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073  
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+
+# objective: Generate Density Plots for Early-Onset PE and Severe PE.  
+
+```
+
+
+```{r, include=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(keyringr)
+library(tidyverse)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+```
+
+```{r, include=FALSE}
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+data=delivery_final_v9
+
+```
+
+
+```{r, message=FALSE}
+
+# Density Plots of Early onset PE
+df=data%>%
+  select(pe_early, gestational_age)
+
+plot<-ggplot(df, aes(x=gestational_age, group=pe_early, fill=pe_early)) + geom_density()
+
+plot
+
+```
+
+```{r, message=FALSE}
+# Density Plots of Early onset PE
+df2=data%>%
+  select(pe_severe, gestational_age)
+
+plot2<-ggplot(df2, aes(x=gestational_age, group=pe_severe, fill=pe_severe)) + geom_density()
+
+plot2
+
+
+```
+

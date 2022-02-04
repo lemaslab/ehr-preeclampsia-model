@@ -61,8 +61,8 @@ source("~/ehr-preeclampsia-model/code/utils/utils.R")
 demo_data <- read_csv("~/ehr-preeclampsia-model/data/demo/test_data_example.csv")
 
 # delivery_final_v8: import linked delivery data (1:1 structure)
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
-ehr_data=delivery_final_v8
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+ehr_data=delivery_final_v9
 
 ```
 
@@ -82,7 +82,7 @@ base_names=names(demo_ready)
 
 other_names=outersect(all_names,base_names)
 
-demo_ready_v1 =demo_ready %>%
+demo_ready_v2 =demo_ready %>%
   add_column(AlcoholAbuse= 0, anxiety=0,
              BloodLossAnemia=0,CardiacArrhythmias=0,
              ChronicPulmonaryDisease=0, Coagulopathy=0,
@@ -104,7 +104,7 @@ demo_ready_v1 =demo_ready %>%
              SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
    
    # file name
-file_name="demo_ready_v1.csv"
+file_name="demo_ready_v2.csv"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/demo/") 
 data_export_path=paste0(data_export_directory,file_name)
 write_csv(demo_ready_v1, file=data_export_path)
@@ -163,7 +163,7 @@ ehr_ready=ehr_data %>%
 
 # output EHR DATA
   
-data_ready_v1 =ehr_ready %>%
+data_ready_v2 =ehr_ready %>%
   add_column(AlcoholAbuse= 0, anxiety=0,
              
              BloodLossAnemia=0,CardiacArrhythmias=0,
@@ -186,10 +186,10 @@ data_ready_v1 =ehr_ready %>%
              SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
    
    # file name
-file_name="data_ready_v1.csv"
+file_name="data_ready_v2.csv"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/demo/") 
 data_export_path=paste0(data_export_directory,file_name)
-write_csv(data_ready_v1, file=data_export_path)
+write_csv(data_ready_v2, file=data_export_path)
 
 # shiny ap output (base predictors): C-index of Cox-nnet model  : 0.49 
 #                                   C-index of the Cox-ph model: 0.543
