@@ -1,0 +1,61 @@
+---
+title: "Delivery Linkage with Gravid/Parity"
+author: "Ke Xu"
+date: "01/14/2022"
+output: html_document
+---
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Dominick Lemas
+# Date:        January 14, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2021-11-01)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************          Technical Notes                     *************** #
+# **************************************************************************** #
+
+# fuzzyjoin: https://community.rstudio.com/t/tidy-way-to-range-join-tables-on-an-interval-of-dates/7881
+
+# note:need to think more about multiples in data merge. 
+# gravid/parity with multiple entries on same day, picked the largest. not sure how this impacts multiples. 
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) link delivery and gravidity and parity data.
+```
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+
+library(tidyverse)
+library(fuzzyjoin)
+source("~/ehr-preeclampsia-model/code/utils/utils.R")
+```
+
+
+```{r, message=FALSE}
+# load data
+
+load("~/ehr-preeclampsia-model/data/processed/mombaby_linked_clinical.rda")
+```
+
+
+```{r, message=FALSE}
+length(unique(delivery$baby_id))
+
+multi=which(duplicated(delivery$baby_id))
+
+df=delivery %>% filter(row_number() %in% multi)
+
+df$mom_id.x
+```

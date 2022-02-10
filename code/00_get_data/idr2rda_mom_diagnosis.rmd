@@ -57,7 +57,9 @@ library(stringr)
 # import variables
 n_max=100000000
 # data_dir=paste0("~/ehr-database/data/raw/dataset_10_2021/")
+# data_dir=paste0("/Volumes/SHARE/FACULTY/DJLEMAS/EHR_Data/raw/dataset_10_2021/")
 data_dir=paste0("V:/FACULTY/DJLEMAS/EHR_Data/raw/dataset_10_2021/")
+
 
 # import data-01
 data_file_name="mom_diagnosis_ICD9.csv"
@@ -104,6 +106,12 @@ data_ready = newdata %>%
 
 df=data_ready
 
+# filter() to encounter for each ICD9/10 code per participant ID
+ehr_codes=df %>%
+group_by(part_id, perinatal_dx_code) %>%
+filter(perinatal_dx_type=="ENCOUNTER")
+df<-ehr_codes
+
 # file name
 file_name="mom_perinatal_raw.rda"
 data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
@@ -129,6 +137,4 @@ data_export_directory=paste0("~/ehr-preeclampsia-model/documents/datadictionary/
 # data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
 data_export_path=paste0(data_export_directory,file_name)
 write_csv(df_codes, file=data_export_path)
-
-
 ```
