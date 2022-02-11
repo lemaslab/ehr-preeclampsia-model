@@ -37,7 +37,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(fuzzyjoin)
-
+library(dplyr)
 ```
 
 ```{r, message=FALSE}
@@ -57,6 +57,13 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v4.rda")
 
 # PREP ICD CODE 1:N DATA
 
+df=df%>%
+  rename("mom_id" = Deidentified_mom_ID,
+          "perinatal_dx_date" = `Diagnosis Start Date`,
+          "perinatal_dx_code" = `Diagnosis Code`,
+          "perinatal_dx_descrip" = `Diagnosis Description`,
+          "perinatal_dx_type" = `Diagnosis Type`)
+
 # ICD codes
 icd_codes=hyper_codes %>%
   filter(perinatal_dx_category=="hypertension") %>% pull(perinatal_dx_code)
@@ -68,6 +75,7 @@ ehr_codes=df %>%
   filter(ehr_logic==1) %>%
   select(-ehr_logic)
 
+ehr_codes$mom_id<-paste("mom-", ehr_codes$mom_id, sep = "")
 # IDs
 mom_unique=unique(ehr_codes$mom_id)
 
@@ -78,7 +86,7 @@ mom_unique=unique(ehr_codes$mom_id)
 # PREP the DELIVERY 1:1 Data
 
 data_final=delivery_final_v4 %>%
-  select(mom_id,part_dob,gest_start_date) %>%
+  select(mom_id,part_dob,gest_start_date,baby_gest_age_raw,weeks,days) %>%
   mutate(ehr_logic=if_else(mom_id %in% mom_unique, 1, 0)) %>%
   filter(ehr_logic==1) %>%
   group_by(mom_id,part_dob) %>% slice(1) %>%

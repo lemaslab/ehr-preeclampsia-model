@@ -65,8 +65,8 @@ code_all=pe_codes$perinatal_dx_code
 # Define PE-onset
 ehr_subset=pe_dx_dob_v0 %>%
   filter(!is.na(part_dob)) %>%
-  mutate(pe_early=if_else(weeks<34, 1, 0),
-         pe_late=if_else(weeks>=34, 1, 0)) %>% 
+  mutate(pe_early=if_else(perinatal_dx_code == "O14.02" | perinatal_dx_code == "O14.12" | perinatal_dx_code == "O14.22" | perinatal_dx_code == "O14.92", 1, 0),
+         pe_late=if_else(perinatal_dx_code != "O14.02" | perinatal_dx_code != "O14.12" | perinatal_dx_code != "O14.22" | perinatal_dx_code != "O14.92", 1, 0)) %>% 
   filter(!is.na(baby_gest_age_raw)) 
 
 dat=ehr_subset %>% ungroup() %>%
