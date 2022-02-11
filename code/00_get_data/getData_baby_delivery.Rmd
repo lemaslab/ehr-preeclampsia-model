@@ -44,7 +44,7 @@ library(REDCapR)
 library(dplyr)
 library(plyr)
 library(ggplot2)
-
+library(readxl)
 ```
 
 ```{r, message=FALSE}

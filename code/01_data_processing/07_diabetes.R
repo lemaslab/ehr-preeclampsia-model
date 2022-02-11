@@ -10,16 +10,16 @@ library(fuzzyjoin)
 
 # hypertension_codes: import icd-code information (1:1 structure)
 data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
-data.dir=paste0("~/blue/djlemas/pe_prediction/data/")
+data.dir=paste0("~/")
 data_import_directory=paste0(data.dir,data.file.name)
 diab_codes=read_xlsx(data_import_directory, sheet = "diabetes", range = NULL, col_names = TRUE,
                    col_types = NULL, na = "NA", trim_ws = TRUE, skip = 0, n_max = Inf)
 
 # df: import perinatal icd-code EHR data (1:n structure)
-load("~/blue/djlemas/pe_prediction/data/mom_perinatal_raw.rda")
+load("~/mom_perinatal_raw.rda")
 
 # delivery_final_v1: import linked delivery data (1:1 structure)
-load("~/blue/djlemas/pe_prediction/data/delivery_linked_v4.rda")
+load("~/delivery_linked_v4.rda")
 
 # PREP ICD CODE 1:N DATA
 
@@ -79,7 +79,7 @@ diab_dx_dob_v0=data_ready
 
 # file name
 file_name="diab_codes_dob_v0.rda"
-data_export_directory=paste0("~/blue/djlemas/pe_prediction/data/") 
+data_export_directory=paste0("~/") 
 data_export_path=paste0(data_export_directory,file_name)
 diab_dx_dob_v0 %>% save(diab_dx_dob_v0, file=data_export_path)
 

@@ -56,6 +56,13 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v4.rda")
 ```{r, message=FALSE}
 
 # PREP ICD CODE 1:N DATA
+df=df%>%
+  rename("mom_id" = Deidentified_mom_ID,
+          "perinatal_dx_date" = `Diagnosis Start Date`,
+          "perinatal_dx_code" = `Diagnosis Code`,
+          "perinatal_dx_descrip" = `Diagnosis Description`,
+          "perinatal_dx_type" = `Diagnosis Type`)
+
 
 # ICD codes
 icd_codes=diab_codes %>%
@@ -67,6 +74,8 @@ ehr_codes=df %>%
   mutate(ehr_logic=if_else(perinatal_dx_code %in% icd_codes, 1, 0)) %>%
   filter(ehr_logic==1) %>%
   select(-ehr_logic)
+
+ehr_codes$mom_id<-paste("mom-", ehr_codes$mom_id, sep = "")
 
 # IDs
 mom_unique=unique(ehr_codes$mom_id)
