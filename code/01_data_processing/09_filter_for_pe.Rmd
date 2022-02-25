@@ -1,0 +1,105 @@
+---
+title: "Filter Final Dataset for PE"
+author: "Hailey Ballard"
+date: "01/25/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        January 25, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) Filter the complete dataset for ONLY individuals who have PE
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(dplyr)
+library(sjmisc)
+library(data.table)
+library(dplyr)
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# delivery_final_v8: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
+
+```
+
+```{r, message=FALSE}
+
+#delivery_final_v9$days[is.na(delivery_final_v9$days)] = 0
+#delivery_final_v9$gest_day_to_weeks <- as.numeric(delivery_final_v9$days)*(1/7)
+
+
+
+#delivery_final_v9$gestational_age <- as.numeric(delivery_final_v9$weeks) + #delivery_final_v9$gest_day_to_weeks
+```
+
+```{r, message=FALSE}
+
+#df<-df%>%
+#  add_column(eope = "x")
+
+#Create new dataframe that selects only participants who have prenatal preeclampsia diagnosis
+delivery_final_v9=filter(delivery_final_v8, prenatal_pe_logic == "preeclampsia" | prenatal_pe_logic == "hellp" )
+
+
+df_codes$early_pe<-ifelse(df_codes$perinatal_dx_code == "O14.02" | df_codes$perinatal_dx_code == "O14.12" | df_codes$perinatal_dx_code == "O14.22" | df_codes$perinatal_dx_code == "O14.92", "1", "0")
+
+moms_eope=c("mom-11968", "mom-11564", "mom-11527", "mom-11344", "mom-11262", "mom-1107", "mom-1106", "mom-10889", "mom-10657", "mom-1060", "mom-10259")
+
+delivery_final_v9$pe_early<-ifelse(delivery_final_v9$mom_id %in% moms_eope, "1", "0")
+
+```
+
+```{r, message=FALSE}
+
+df_codes_2=data.frame(df_codes$part_id, df_codes$perinatal_dx_date, df_codes$perinatal_dx_code)
+
+df_codes_2$pe_code<-ifelse(df_codes$perinatal_dx_code == "O14.00" | df_codes$perinatal_dx_code == "O14.02" | df_codes$perinatal_dx_code == "O14.03" | df_codes$perinatal_dx_code == "O14.04" | df_codes$perinatal_dx_code == "O14.05" | df_codes$perinatal_dx_code == "O14.1" | df_codes$perinatal_dx_code == "O14.10" | df_codes$perinatal_dx_code == "O14.12" | df_codes$perinatal_dx_code == "O14.13" | df_codes$perinatal_dx_code == "O14.14" | df_codes$perinatal_dx_code == "O14.15" | df_codes$perinatal_dx_code == "O14.2" | df_codes$perinatal_dx_code == "O14.20" | df_codes$perinatal_dx_code == "O14.22" |df_codes$perinatal_dx_code == "O14.23" | df_codes$perinatal_dx_code == "O14.24" | df_codes$perinatal_dx_code == "O14.25" |  df_codes$perinatal_dx_code == "O14.3" | df_codes$perinatal_dx_code == "O14.90" | df_codes$perinatal_dx_code == "O14.92" | df_codes$perinatal_dx_code == "O14.93" | df_codes$perinatal_dx_code == "O14.94" | df_codes$perinatal_dx_code == "O14.95", "1", "0")
+
+df_codes_2<-df_codes_2[ which (df_codes_2$pe_code == "1"), ]
+
+mom_ids=data.frame(unique(df_codes_2$df_codes.part_id))
+
+baby_birth<-data.frame(delivery_final_v9$mom_id, delivery_final_v9$part_dob)
+baby_birth$eope<-"1"
+
+```
+
+```{r, message=FALSE}
+# file name
+file_name="delivery_linked_v9.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
+```
+

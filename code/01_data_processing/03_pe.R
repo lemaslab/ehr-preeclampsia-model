@@ -27,6 +27,12 @@ load("~/blue/djlemas/pe_prediction/data/delivery_linked_v1.rda")
 # ICD outcomes
 code_all=pe_codes$perinatal_dx_code
 
+
+df=df%>%
+  rename(perinatal_dx_type = `Diagnosis Type`,
+         perinatal_dx_code = `Diagnosis Code`,
+         mom_id = `Deidentified_mom_ID`)
+
 # EHR data
 ehr_codes=df %>%
   filter(perinatal_dx_type=="ENCOUNTER")

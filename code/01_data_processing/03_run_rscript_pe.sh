@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=pe_link   #Job name	
 #SBATCH --mail-type=END,FAIL   # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=djlemas@ufl.edu   # Where to send mail	
+#SBATCH --mail-user=hballard@ufl.edu   # Where to send mail	
 #SBATCH --nodes=2                    # Run all processes on a single node	
 #SBATCH --mem=10gb   # Per processor memory
 #SBATCH --time=00:40:00   # Walltime
