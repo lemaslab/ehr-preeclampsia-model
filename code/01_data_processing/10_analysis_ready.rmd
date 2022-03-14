@@ -127,7 +127,7 @@ write_csv(demo_ready_v1, file=data_export_path)
 ehr_ready=ehr_data %>%
   select(-part_id,-multgest_dx_type,-multgest_icd_code,-baby_gest_age_raw,
          -delivery_admit_date,-gest_start_date,-pregnancy_start_date,-multgest_dx_date,
-         -multgest_dx_code,-multgest_dx_descrip,-multgest_dx_gestation,-multgest_dx_category) %>%
+         -multgest_dx_code,-multgest_dx_descrip,-multgest_dx_gestation,-multgest_dx_category,-perinatal_dx_date) %>%
   #mutate(multgest_dx_subcategory=as_factor(multgest_dx_subcategory)) %>%
   mutate(NUMBER_OF_FETUSES=recode(multgest_dx_subcategory,
                                   twin="2", 
@@ -163,7 +163,7 @@ ehr_ready=ehr_data %>%
 
 # output EHR DATA
   
-data_ready_v2 =ehr_ready %>%
+ehr_ready =ehr_ready %>%
   add_column(AlcoholAbuse= 0, anxiety=0,
              
              BloodLossAnemia=0,CardiacArrhythmias=0,
@@ -184,10 +184,27 @@ data_ready_v2 =ehr_ready %>%
              SexuallyActiveStatusMapped.Not.Currently=0, SexuallyActiveStatusMapped.Yes=0,
              SmokingStatusMapped.Current=0, SmokingStatusMapped.Former=0, SmokingStatusMapped.Never=0,
              SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0, past_pe=0)
+
+ehr_ready = ehr_ready%>%filter(!is.na(EPIS_GRAVIDA_COUNT)&!is.na(EPIS_PARA_COUNT)&!is.na(NUMBER_OF_FETUSES)&!is.na(diag_GA))
+
+
+int_var = c("diag_GA","EPIS_GRAVIDA_COUNT",  "EPIS_PARA_COUNT",  "NUMBER_OF_FETUSES","age")
+for (i in int_var){
+  ehr_ready[,i] = as.integer(unlist(ehr_ready[,i]))
+}
+
+num_var = c("diag_GA","EPIS_GRAVIDA_COUNT", "EPIS_PARA_COUNT", "NUMBER_OF_FETUSES","age")
+for(i in c(1:ncol(ehr_ready))){
+  if(colnames(ehr_ready)[i]%in%num_var){
+    ehr_ready[,i] = scale(ehr_ready[,i], center = F)
+  }
+}
+
+data_ready_v2=ehr_ready
    
    # file name
 file_name="data_ready_v2.csv"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/demo/") 
+data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/demo/") 
 data_export_path=paste0(data_export_directory,file_name)
 write_csv(data_ready_v2, file=data_export_path)
 
