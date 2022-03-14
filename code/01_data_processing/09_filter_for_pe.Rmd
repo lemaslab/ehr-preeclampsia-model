@@ -54,21 +54,59 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v8.rda")
 
 ```{r, message=FALSE}
 
-#Create new dataframe that selects only participants who have prenatal preeclampsia diagnosis
-delivery_final_v9=filter(delivery_final_v8, prenatal_pe_logic == "preeclampsia")
 
-delivery_final_v9$days[is.na(delivery_final_v9$days)] = 0
-delivery_final_v9$gest_day_to_weeks <- as.numeric(delivery_final_v9$days)*(1/7)
+delivery_final_v9=delivery_final_v8%>%
+  filter(prenatal_pe_logic == "preeclampsia")
+
+#remove any duplicated baby IDs
+delivery_final_v9=delivery_final_v9[!duplicated(delivery_final_v9$baby_id), ]
+
+#filter codes for PE
+df_filtered=df%>%
+  filter(grepl('pre-eclampsia|Pre-eclampsia', perinatal_dx_descrip))
+
+#select IDs and DOB
+moms_delivery=select(delivery_final_v9, c("mom_id", "baby_id", "part_dob"))
+
+#select ID and PE diagnosis
+df_filtered=df_filtered%>%
+  select(part_id, perinatal_dx_date)
+
+#group by IDs, filter for earliest date
+df_filtered=df_filtered%>%
+  group_by(part_id)%>%
+  arrange(perinatal_dx_date)%>%
+  slice(1L)
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(mom_id %in% df_filtered$part_id)
+
+delivery_filtered=delivery_final_v8%>%
+  filter(mom_id %in% df_filtered$part_id)%>%
+  group_by(mom_id)%>%
+  arrange(mom_id)%>%
+  slice(1L)
+
+df_filtered=df_filtered%>%
+  rename(mom_id = part_id)
+
+delivery_final_v9<-merge(delivery_filtered, df_filtered, by="mom_id")
+
+#calculate time between delivery and first PE diagnosis
+for(x in delivery_final_v9$mom_id){
+  delivery_final_v9$time_to_deliver=paste(difftime(delivery_final_v9$part_dob, delivery_final_v9$perinatal_dx_date, units="days"))
+}
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(between(delivery_final_v9$time_to_deliver, -120, 120))
 
 
-
-delivery_final_v9$gestational_age <- as.numeric(delivery_final_v9$weeks) + delivery_final_v9$gest_day_to_weeks
 ```
 
 ```{r, message=FALSE}
 # file name
 file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```

@@ -101,11 +101,11 @@ demo_ready_v2 =demo_ready %>%
              SexuallyActiveStatusMapped.No=0, SexuallyActiveStatusMapped.Not.Asked=0,
              SexuallyActiveStatusMapped.Not.Currently=0, SexuallyActiveStatusMapped.Yes=0,
              SmokingStatusMapped.Current=0, SmokingStatusMapped.Former=0, SmokingStatusMapped.Never=0,
-             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
+             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0, past_pe=0)
    
    # file name
 file_name="demo_ready_v2.csv"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/demo/") 
+data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/demo/") 
 data_export_path=paste0(data_export_directory,file_name)
 write_csv(demo_ready_v1, file=data_export_path)
 
@@ -136,7 +136,7 @@ ehr_ready=ehr_data %>%
                                   quadruplet="3",
                                   .missing = "1")) %>%
   select(-multgest_dx_subcategory,-days,-pe_late,-prenatal_pe_logic) %>%
- rename(Gestational_Age = weeks, 
+ rename(diag_GA = weeks, 
                EPIS_GRAVIDA_COUNT=gravidity,
                EPIS_PARA_COUNT=parity, 
                age=mom_age_delivery,
@@ -183,7 +183,7 @@ data_ready_v2 =ehr_ready %>%
              SexuallyActiveStatusMapped.No=0, SexuallyActiveStatusMapped.Not.Asked=0,
              SexuallyActiveStatusMapped.Not.Currently=0, SexuallyActiveStatusMapped.Yes=0,
              SmokingStatusMapped.Current=0, SmokingStatusMapped.Former=0, SmokingStatusMapped.Never=0,
-             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
+             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0, past_pe=0)
    
    # file name
 file_name="data_ready_v2.csv"
