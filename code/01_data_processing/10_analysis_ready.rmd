@@ -183,7 +183,7 @@ ehr_ready =ehr_ready %>%
              SexuallyActiveStatusMapped.No=0, SexuallyActiveStatusMapped.Not.Asked=0,
              SexuallyActiveStatusMapped.Not.Currently=0, SexuallyActiveStatusMapped.Yes=0,
              SmokingStatusMapped.Current=0, SmokingStatusMapped.Former=0, SmokingStatusMapped.Never=0,
-             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0, past_pe=0)
+             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
 
 ehr_ready = ehr_ready%>%filter(!is.na(EPIS_GRAVIDA_COUNT)&!is.na(EPIS_PARA_COUNT)&!is.na(NUMBER_OF_FETUSES)&!is.na(diag_GA))
 

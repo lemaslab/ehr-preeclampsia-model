@@ -70,7 +70,7 @@ df_filtered=df_filtered%>%
 df_filtered=df_filtered%>%
   mutate(year=lubridate::year(perinatal_dx_date))
 
-df_filtered$part_id<-paste(df_filtered$part_id, df_filtered$year, sep = "-")
+df_filtered$part_id<-paste(df_filtered$part_id, df_filtered$year, sep = "_")
 
 df_filtered=df_filtered%>%
   group_by(part_id)%>%
@@ -82,7 +82,7 @@ df_filtered=df_filtered%>%
 delivery_final_v9=delivery_final_v9%>%
   mutate(year=lubridate::year(part_dob))
 
-delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year, sep = "-")
+delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year, sep = "_")
 
 df_filtered=df_filtered%>%
   rename(mom_id = part_id)
@@ -111,7 +111,15 @@ for(x in delivery_final_v9$mom_id){
 }
 
 delivery_final_v9=delivery_final_v9%>%
-  filter(between(delivery_final_v9$time_to_deliver, -150, 150))
+  filter(between(delivery_final_v9$time_to_deliver, 0, 150))
+
+delivery_final_v9=delivery_final_v9%>%
+  mutate(delivery_final_v9, mom_id=sapply(strsplit(delivery_final_v9$mom_id, split="_", fixed=TRUE), function(x) (x[1])))
+
+delivery_final_v9$past_pe<-ifelse(duplicated(delivery_final_v9$mom_id), "1", "0")
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(delivery_final_v9$prenatal_pe_logic == "preeclampsia")
 
 ```
 
