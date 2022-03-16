@@ -116,10 +116,10 @@ delivery_final_v9=delivery_final_v9%>%
 delivery_final_v9=delivery_final_v9%>%
   mutate(delivery_final_v9, mom_id=sapply(strsplit(delivery_final_v9$mom_id, split="_", fixed=TRUE), function(x) (x[1])))
 
-delivery_final_v9$past_pe<-ifelse(duplicated(delivery_final_v9$mom_id), "1", "0")
-
 delivery_final_v9=delivery_final_v9%>%
   filter(delivery_final_v9$prenatal_pe_logic == "preeclampsia")
+
+delivery_final_v9$past_pe<-ifelse(duplicated(delivery_final_v9$mom_id), "1", "0")
 
 ```
 
