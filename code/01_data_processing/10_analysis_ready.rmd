@@ -164,26 +164,7 @@ ehr_ready=ehr_data %>%
 # output EHR DATA
   
 ehr_ready =ehr_ready %>%
-  add_column(AlcoholAbuse= 0, anxiety=0,
-             
-             BloodLossAnemia=0,CardiacArrhythmias=0,
-             ChronicPulmonaryDisease=0, Coagulopathy=0,
-             CongestiveHeartFailure=0, DeficiencyAnemia=0,
-             Depression=0, DrugAbuse=0, FluidElectrolyteDisorders=0,
-             HypertensionComplicated=0, Hypothyroidism=0,
-             IllegalDrugUserStatusMapped.No=0, IllegalDrugUserStatusMapped.Not.Asked=0,
-             IllegalDrugUserStatusMapped.Yes=0, LiverDisease=0, Lymphoma=0,
-             MaritalStatusName.Married=0, MaritalStatusName.Unmarried=0,
-             MetastaticCancer=0, Obesity=0, OtherNeurologicalDisorders=0,
-             Paralysis=0, PepticUlcerDiseaseExcludingBleeding=0,
-             PeripheralVascularDisorders=0, Psychoses=0, RaceName.African.American=0,
-             RaceName.American.Indian.or.Alaska.Native=0, RaceName.Asian=0, 
-             RaceName.Caucasian=0, RaceName.Native.Hawaiian.and.Other.Pacific.Islander=0,
-             RaceName.Other=0, RenalFailure=0, RheumatoidArthritisCollagenVascularDiseases=0,
-             SexuallyActiveStatusMapped.No=0, SexuallyActiveStatusMapped.Not.Asked=0,
-             SexuallyActiveStatusMapped.Not.Currently=0, SexuallyActiveStatusMapped.Yes=0,
-             SmokingStatusMapped.Current=0, SmokingStatusMapped.Former=0, SmokingStatusMapped.Never=0,
-             SolidTumorWithoutMetastasis=0, ValvularDisease=0, WeightLoss=0)
+  add_column(AlcoholUseStatusSourceNo= 0, IllegalDrugUserStatusNo= 0, SexuallyActiveStatusSourceNever= 0, SexuallyActiveStatusSourceNo = 0, SexuallyActiveStatusSourceNot.Currently= 0, SexuallyActiveStatusSourceYes =0)
 
 ehr_ready = ehr_ready%>%filter(!is.na(EPIS_GRAVIDA_COUNT)&!is.na(EPIS_PARA_COUNT)&!is.na(NUMBER_OF_FETUSES)&!is.na(diag_GA))
 
