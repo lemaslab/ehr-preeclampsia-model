@@ -1,0 +1,190 @@
+---
+title: "Filter Final Dataset for PE"
+author: "Hailey Ballard"
+date: "01/25/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        January 25, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) Filter the complete dataset for ONLY individuals who have PE
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(dplyr)
+library(sjmisc)
+library(data.table)
+library(lubridate)
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+
+mom_alcohol_release<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_alcohol_release.csv")
+
+mom_comorbidities_icd10<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
+
+mom_comorbidities_icd9<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
+
+mom_bateman<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_batman_release.csv")
+
+mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9)
+mom_comorbidities_codes$Deidentified_mom_ID<-paste0("mom-", mom_comorbidities_codes$Deidentified_mom_ID)
+
+mom_alcohol_release$Deidentified_mom_ID<-paste0("mom-",mom_alcohol_release$Deidentified_mom_ID)
+
+mom_comorbidities_codes$`Diagnosis Start Date`<-as.factor(mom_comorbidities_codes$`Diagnosis Start Date`)
+mom_comorbidities_codes$`Diagnosis Start Date`<-strptime(mom_comorbidities_codes$`Diagnosis Start Date`, format="%m/%d/%y")
+mom_comorbidities_codes$`Diagnosis Start Date`<-as.Date(mom_comorbidities_codes$`Diagnosis Start Date`, format="%m-%d-%y")
+
+delivery_final_v9=delivery_final_v9%>%
+  mutate(year=lubridate::year(part_dob))
+
+delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year, sep = "_")
+
+```
+
+#Severe PE
+```{r, message=FALSE}
+#filter codes for severe
+df_severe=df%>%
+  filter(stringr::str_starts(perinatal_dx_code, "642.5|O14.1"))
+
+#Add year of delivery to PART ID
+df_severe=df_severe%>%
+  mutate(year=lubridate::year(perinatal_dx_date))
+
+df_severe$part_id<-paste(df_severe$part_id, df_severe$year, sep = "_")
+
+moms_severepe=unique(df_severe$part_id)
+
+delivery_final_v9$SeverePE<-ifelse(delivery_final_v9$mom_id %in% moms_severepe, "1", "0")
+
+```
+#Alcohol Yes and Never
+```{r, message=FALSE}
+#history of alcohol use
+alcohol_use=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "F10|K29|K70.0|K70.3|K70.9|291.8|291.9|303.0|303.9|305.0|571.1|571.3|571.3|980.9"))
+
+#Add year of delivery to PART ID
+alcohol_use=alcohol_use%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`)) 
+
+alcohol_use$Deidentified_mom_ID<-paste(alcohol_use$Deidentified_mom_ID, alcohol_use$year, sep = "_")
+
+moms_alcohol=unique(alcohol_use$Deidentified_mom_ID)
+
+
+delivery_final_v9$AlcoholUseStatusSourceYes<-ifelse(delivery_final_v9$mom_id %in% moms_alcohol, "1", "0")
+
+
+alcohol_never_comment=mom_alcohol_release%>%
+  filter(grepl("Never|never", mom_alcohol_release$`Alcohol Comment`)) 
+
+#Add year of delivery to PART ID
+alcohol_never_comment=alcohol_never_comment%>%
+  mutate(year=lubridate::year(`Contact Date`)) 
+
+alcohol_never_comment$Deidentified_mom_ID<-paste(alcohol_never_comment$Deidentified_mom_ID, alcohol_never_comment$year, sep = "_")
+
+moms_alcohol_never2=unique(alcohol_never_comment$Deidentified_mom_ID)
+
+delivery_final_v9$AlcoholUseStatusSourceNever<-ifelse(delivery_final_v9$mom_id %in% moms_alcohol_never2, "1", "0")
+
+```
+
+#Alcohol NO
+```{r, message=FALSE}
+
+alcohol_use_past=mom_alcohol_release%>%
+  filter(grepl("none|prior|None|Prior|before|Before|Not anymore|not anymore|", mom_alcohol_release$`Alcohol Comment`)) 
+
+#Add year of delivery to PART ID
+alcohol_use_past=alcohol_use_past%>%
+  mutate(year=lubridate::year(`Contact Date`)) 
+
+alcohol_use_past$Deidentified_mom_ID<-paste(alcohol_use_past$Deidentified_mom_ID, alcohol_use_past$year, sep = "_")
+
+moms_alcohol_past=unique(alcohol_use_past$Deidentified_mom_ID)
+
+delivery_final_v9$AlcoholUseStatusNo<-ifelse(delivery_final_v9$mom_id %in% moms_alcohol_past, "1", "0")
+```
+
+#Uncomplicated Hypertension
+```{r, message=FALSE}
+df_hypertension_uncomplicated=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "401"))
+
+#Add year of delivery to PART ID
+df_hypertension_uncomplicated=df_hypertension_uncomplicated%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`)) 
+
+df_hypertension_uncomplicated$Deidentified_mom_ID<-paste(df_hypertension_uncomplicated$Deidentified_mom_ID, df_hypertension_uncomplicated$year, sep = "_")
+
+moms_hypertension=unique(df_hypertension_uncomplicated$Deidentified_mom_ID)
+
+delivery_final_v9$HypertensionUncomplicated<-ifelse(delivery_final_v9$mom_id %in% moms_hypertension, "1", "0")
+
+```
+
+#Uncomplicated Diabetes
+```{r, message=FALSE}
+df_diabetes_uncomplicated=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "E10.0|E10.1|E10.09|E11.0|E11.1|E11.9|E12.0|E12.1|E12.9|E13.0|E13.1|E13.9|E14.0|E14.1|E14.9|250.0|250.1|250.2|250.3"))
+
+#Add year of delivery to PART ID
+df_diabetes_uncomplicated=df_diabetes_uncomplicated%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_diabetes_uncomplicated$Deidentified_mom_ID<-paste(df_diabetes_uncomplicated$Deidentified_mom_ID, df_diabetes_uncomplicated$year, sep = "_")
+
+moms_diabetes_uncomp=unique(df_diabetes_uncomplicated$Deidentified_mom_ID)
+
+delivery_final_v9$DiabetesUncomplicated<-ifelse(delivery_final_v9$mom_id %in% moms_diabetes_uncomp, "1", "0")
+
+```
+
+#Complicated Diabetes
+```{r, message=FALSE}
+df_diabetes_complicated=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "E10.2|E10.3|E10.4|E10.5|E10.6|E10.7|E10.8|E11.2|E11.3|E11.4|E11.5|E11.6|E11.7|E11.8|E12.2|E12.3|E12.4|E12.5|E12.6|E12.7|E12.8|E13.2|E13.3|E13.4|E13.5|E13.6|E13.7|E13.8|E14.2|E14.3|E14.4|E14.5|E14.6|E14.7|E14.8|250.4|250.5|250.6|250.7|250.8|250.9")) 
+
+#Add year of delivery to PART ID
+df_diabetes_complicated=df_diabetes_complicated%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_diabetes_complicated$Deidentified_mom_ID<-paste(df_diabetes_complicated$Deidentified_mom_ID, df_diabetes_complicated$year, sep = "_")
+
+moms_diabetes_comp=unique(df_diabetes_complicated$Deidentified_mom_ID)
+
+delivery_final_v9$DiabetesComplicated<-ifelse(delivery_final_v9$mom_id %in% moms_diabetes_comp, "1", "0")
+
+```

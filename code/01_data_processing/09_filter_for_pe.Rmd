@@ -118,44 +118,17 @@ delivery_final_v9=delivery_final_v9%>%
 delivery_final_v9=delivery_final_v9%>%
   mutate(delivery_final_v9, mom_id=sapply(strsplit(delivery_final_v9$mom_id, split="_", fixed=TRUE), function(x) (x[1])))
 
-#filter for PE 
+##filter for PE 
 delivery_final_v9=delivery_final_v9%>%
   filter(delivery_final_v9$prenatal_pe_logic == "preeclampsia")
 
 #assign Past PE diagnosis
 delivery_final_v9$past_pe<-ifelse(!(duplicated(delivery_final_v9$mom_id)), "0", "1")
 
-```
+delivery_final_v9=delivery_final_v9%>%
+  select(-pe_severe, -hypertension, -diab_comp, -diab_uncomp, -pulmonary)
 
-```{r, message=FALSE}
-#Filter codes for drug use
-drug_codes=df%>%
-  filter(perinatal_dx_code == "648.33" | perinatal_dx_code == "648.31" | perinatal_dx_code == "648.3" |  perinatal_dx_code == "648.34" | perinatal_dx_code == "O99.324" | perinatal_dx_code == "O99.321" | perinatal_dx_code == "O99.322" | perinatal_dx_code == "O99.323" | perinatal_dx_code == "O99.320" | perinatal_dx_code == "O99.325" | perinatal_dx_code == "655.53")
 
-#select moms with drug use
-mom_drugs=unique(drug_codes$part_id)
-
-#add those moms to delivery_final_v9
-delivery_final_v9$IllegalDrugUserStatusSourceNever<-ifelse(delivery_final_v9$mom_id %in% mom_drugs, "0", "1")
-
-delivery_final_v9$IllegalDrugUserStatusSourceYes<-ifelse(delivery_final_v9$mom_id %in% mom_drugs, "1", "0")
-
-delivery_final_v9$DrugAbuse<-ifelse(delivery_final_v9$mom_id %in% mom_drugs, "1", "0")
-
-```
-
-```{r, message=FALSE}
-#filter drugs for alcohol use
-alcohol_codes=df%>%
-  filter(perinatal_dx_code == "O99.311" | perinatal_dx_code == "O99.312" | perinatal_dx_code == "O99.313" | perinatal_dx_code == "O99.310" | perinatal_dx_code == "O99.314" | perinatal_dx_code == "O35.4XX0")
-
-#select moms with alcohol use
-moms_alcohol=unique(alcohol_codes$part_id)
-
-#code moms in dataframe with alcohol use
-delivery_final_v9$AlcoholUseStatusSourceNever<-ifelse(delivery_final_v9$mom_id %in% moms_alcohol, "0", "1")
-
-delivery_final_v9$AlcoholUseStatusSourceYes<-ifelse(delivery_final_v9$mom_id %in% moms_alcohol, "1", "0")
 
 ```
 

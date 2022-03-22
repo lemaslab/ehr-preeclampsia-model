@@ -140,19 +140,9 @@ ehr_ready=ehr_data %>%
                EPIS_GRAVIDA_COUNT=gravidity,
                EPIS_PARA_COUNT=parity, 
                age=mom_age_delivery,
-               eope=pe_early,
-               SeverePE=pe_severe,
-               HypertensionUncomplicated=hypertension,
-               DiabetesComplicated=diab_comp,
-               DiabetesUncomplicated=diab_uncomp,
-               PulmonaryCirculationDisorders=pulmonary) %>%
+               eope=pe_early,) %>%
   group_by(mom_id, part_dob) %>% slice(1) %>% ungroup() %>%
-  mutate(eope = ifelse(is.na(eope), 0, eope),
-         SeverePE = ifelse(is.na(SeverePE), 0, SeverePE),
-         HypertensionUncomplicated = ifelse(is.na(HypertensionUncomplicated), 0, HypertensionUncomplicated),
-         DiabetesComplicated = ifelse(is.na(DiabetesComplicated), 0, DiabetesComplicated),
-         DiabetesUncomplicated = ifelse(is.na(DiabetesUncomplicated), 0, DiabetesUncomplicated),
-         PulmonaryCirculationDisorders = ifelse(is.na(PulmonaryCirculationDisorders), 0, PulmonaryCirculationDisorders)) %>%
+  mutate(eope = ifelse(is.na(eope), 0, eope))%>%
   select(-mom_id,-baby_id,-part_dob)
 
   
@@ -164,7 +154,7 @@ ehr_ready=ehr_data %>%
 # output EHR DATA
   
 ehr_ready =ehr_ready %>%
-  add_column(AlcoholUseStatusSourceNo= 0, IllegalDrugUserStatusNo= 0, SexuallyActiveStatusSourceNever= 0, SexuallyActiveStatusSourceNo = 0, SexuallyActiveStatusSourceNot.Currently= 0, SexuallyActiveStatusSourceYes =0)
+  add_column(IllegalDrugUserStatusNo= 0, SexuallyActiveStatusSourceNever= 0, SexuallyActiveStatusSourceNo = 0, SexuallyActiveStatusSourceNot.Currently= 0, SexuallyActiveStatusSourceYes =0)
 
 ehr_ready = ehr_ready%>%filter(!is.na(EPIS_GRAVIDA_COUNT)&!is.na(EPIS_PARA_COUNT)&!is.na(NUMBER_OF_FETUSES)&!is.na(diag_GA))
 
