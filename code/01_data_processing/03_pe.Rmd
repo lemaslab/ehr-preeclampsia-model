@@ -1,5 +1,5 @@
 ---
-title: "Filter Final Dataset for PE"
+title: "Filter Dataset for PE diagnoses"
 author: "Hailey Ballard"
 date: "01/25/2022"
 output: html_document
@@ -157,7 +157,7 @@ delivery_final_v9=delivery_final_v9%>%
 ```{r, message=FALSE}
 # file name
 file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```

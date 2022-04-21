@@ -68,7 +68,7 @@ ehr_data=delivery_final_v9
 
 ```{r, message=FALSE}
 
-# PREP DEMO DATA
+### SKIP - DEMO DATA
 
 # limit to the data of interest with variables names, then add the other variables as "empty" data with 0. 
 

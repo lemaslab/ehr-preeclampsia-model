@@ -47,13 +47,13 @@ library(lubridate)
 
 # pe_codes: import icd-code information (1:1 structure)
 
-mom_alcohol_release<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_alcohol_release.csv")
+mom_alcohol_release<-read_csv("~/ehr-preeclampsia-model/data/raw/mom_alcohol_release.csv")
 
-mom_comorbidities_icd10<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
+mom_comorbidities_icd10<-read_csv("~/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
 
-mom_comorbidities_icd9<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
+mom_comorbidities_icd9<-read_csv("~/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
 
-mom_bateman<-read_csv("~/GitHub/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_batman_release.csv")
+mom_bateman<-read_csv("~/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_batman_release.csv")
 
 mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9)
 mom_comorbidities_codes$Deidentified_mom_ID<-paste0("mom-", mom_comorbidities_codes$Deidentified_mom_ID)
@@ -222,7 +222,7 @@ delivery_final_v9=delivery_final_v9%>%
 ```{r, message=FALSE}
 # file name
 file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```
