@@ -154,7 +154,7 @@ ehr_ready=ehr_data %>%
 # output EHR DATA
   
 ehr_ready =ehr_ready %>%
-  add_column(IllegalDrugUserStatusNo= 0, SexuallyActiveStatusSourceNever= 0, SexuallyActiveStatusSourceNo = 0, SexuallyActiveStatusSourceNot.Currently= 0, SexuallyActiveStatusSourceYes =0)
+  add_column(SexuallyActiveStatusSourceNever= 0, SexuallyActiveStatusSourceNo = 0, SexuallyActiveStatusSourceNot.Currently= 0, SexuallyActiveStatusSourceYes =0, DrugAbuse=0)
 
 ehr_ready = ehr_ready%>%filter(!is.na(EPIS_GRAVIDA_COUNT)&!is.na(EPIS_PARA_COUNT)&!is.na(NUMBER_OF_FETUSES)&!is.na(diag_GA))
 

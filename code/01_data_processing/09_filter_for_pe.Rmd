@@ -59,12 +59,12 @@ delivery_final_v9=delivery_final_v8[!duplicated(delivery_final_v8$baby_id), ]
 
 #filter codes for PE
 df_filtered=df%>%
-  filter(grepl('pre-eclampsia|Pre-eclampsia', perinatal_dx_descrip))
+  filter(grepl("pre-eclampsia|Pre-eclampsia", perinatal_dx_descrip))
 
 
 #select ID and PE diagnosis
 df_filtered=df_filtered%>%
-  select(part_id, perinatal_dx_date)
+  select(part_id, perinatal_dx_date, perinatal_dx_descrip)
 
 #Add year of PE diagnosis to PART ID
 df_filtered=df_filtered%>%
@@ -110,25 +110,46 @@ for(x in delivery_final_v9$mom_id){
   delivery_final_v9$time_to_deliver=paste(difftime(delivery_final_v9$part_dob, delivery_final_v9$perinatal_dx_date, units="days"))
 }
 
-#drop any moms with negative PE diagnosis dates
-delivery_final_v9=delivery_final_v9%>%
-  filter(between(delivery_final_v9$time_to_deliver, 0, 150))
-
-#split IDs 
+#delivery_final_v9=delivery_final_v9%>%
+ # filter(between(delivery_final_v9$time_to_deliver, 0, 150))
+#
 delivery_final_v9=delivery_final_v9%>%
   mutate(delivery_final_v9, mom_id=sapply(strsplit(delivery_final_v9$mom_id, split="_", fixed=TRUE), function(x) (x[1])))
 
-##filter for PE 
-delivery_final_v9=delivery_final_v9%>%
-  filter(delivery_final_v9$prenatal_pe_logic == "preeclampsia")
+#delivery_final_v9=delivery_final_v9%>%
+#  filter(delivery_final_v9$prenatal_pe_logic == "preeclampsia")
 
-#assign Past PE diagnosis
+delivery_final_v9=delivery_final_v9%>%
+  group_by(mom_id)
+
 delivery_final_v9$past_pe<-ifelse(!(duplicated(delivery_final_v9$mom_id)), "0", "1")
 
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver >= 0, ]
+
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 177, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 153, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 156, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 162, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 166, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 167, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 169, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 181, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 184, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 188, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 192, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 197, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 205, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 209, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 212, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 216, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 222, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 224, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 306, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 324, ]
+
+
 delivery_final_v9=delivery_final_v9%>%
-  select(-pe_severe, -hypertension, -diab_comp, -diab_uncomp, -pulmonary)
-
-
+  subset(part_dob>"2015-10-01")
 
 ```
 

@@ -72,20 +72,9 @@ delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year
 ```
 
 #Severe PE
-```{r, message=FALSE}
-#filter codes for severe
-df_severe=df%>%
-  filter(stringr::str_starts(perinatal_dx_code, "642.5|O14.1"))
+```{r}
 
-#Add year of delivery to PART ID
-df_severe=df_severe%>%
-  mutate(year=lubridate::year(perinatal_dx_date))
-
-df_severe$part_id<-paste(df_severe$part_id, df_severe$year, sep = "_")
-
-moms_severepe=unique(df_severe$part_id)
-
-delivery_final_v9$SeverePE<-ifelse(delivery_final_v9$mom_id %in% moms_severepe, "1", "0")
+delivery_final_v9$SeverePE<-ifelse(grepl("Severe pre-eclampsia", delivery_final_v9$perinatal_dx_descrip), "1", "0")
 
 ```
 #Alcohol Yes and Never
@@ -187,4 +176,53 @@ moms_diabetes_comp=unique(df_diabetes_complicated$Deidentified_mom_ID)
 
 delivery_final_v9$DiabetesComplicated<-ifelse(delivery_final_v9$mom_id %in% moms_diabetes_comp, "1", "0")
 
+```
+
+#Illegal Drug Use
+```{r, message=FALSE}
+
+drug_use_yes=mom_comorbidities_codes%>%
+  filter(stringr::str_starts( mom_comorbidities_codes$`Diagnosis Code`, "292|304|305.9"))
+
+drug_use_yes_1=drug_use_yes%>%
+  filter(!grepl("remission", drug_use_yes$`Diagnosis Description`))
+
+drug_use_past=drug_use_yes%>%
+  filter(grepl("remission", drug_use_yes$`Diagnosis Description`))
+
+#Add year of delivery to PART ID
+drug_use_yes_1=drug_use_yes_1%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`)) 
+
+drug_use_yes_1$Deidentified_mom_ID<-paste(drug_use_yes_1$Deidentified_mom_ID, drug_use_yes_1$year, sep = "_")
+
+moms_drug_use_yes=unique(drug_use_yes_1$Deidentified_mom_ID)
+
+delivery_final_v9$IllegalDrugUserStatusSourceYes<-ifelse(delivery_final_v9$mom_id %in% moms_drug_use_yes, "1", "0")
+
+delivery_final_v9$IllegalDrugUserStatusSourceNever<-ifelse(delivery_final_v9$IllegalDrugUserStatusSourceYes == "1", "0", "1")
+
+#past drug use
+#Add year of delivery to PART ID
+drug_use_past=drug_use_past%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`)) 
+
+drug_use_past$Deidentified_mom_ID<-paste(drug_use_past$Deidentified_mom_ID, drug_use_past$year, sep = "_")
+
+moms_drug_use_past=unique(drug_use_past$Deidentified_mom_ID)
+
+delivery_final_v9$IllegalDrugUserStatusSourceNo<-ifelse(delivery_final_v9$mom_id %in% moms_drug_use_past, "1", "0")
+
+
+#drop NAs
+delivery_final_v9=delivery_final_v9%>%
+  filter(!is.na(weeks)&!is.na(gravidity)&!is.na(parity))
+```
+
+```{r, message=FALSE}
+# file name
+file_name="delivery_linked_v9.rda"
+data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```
