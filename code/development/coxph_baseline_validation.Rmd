@@ -1,0 +1,67 @@
+```{r, include=FALSE}
+
+library(glmnet)
+library(survival)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+# load UF validation set 
+
+
+df=delivery_final_v9
+df = df%>%select(weeks, SeverePE, past_pe, parity, gravidity, mom_age_delivery, time_to_deliver)
+xtest = as.matrix(df%>%dplyr::select(-time_to_deliver))
+ytest = df%>%dplyr::select(time_to_deliver)
+ytest = data.frame(time = unlist(ytest), status = rep(1, length(ytest)))
+colnames(ytest)[1] = "time"
+
+#calculate c-index for cox-ph using pre-trained model
+load("cox_ph_model0420.RData")
+
+test_ridge <- predict(train_ridge, xtest ,s=train_ridge$lambda.min,type='link')
+cindex_ridge <- round(Cindex(test_ridge, ytest),3)
+cindex_ridge
+
+# plot the predicted vs true value scatterplot
+result = data.frame(test_ridge, ytest[,1])
+colnames(result) = c("Predicted", "True")
+p_result = ggplot(result, aes(x = Predicted, y=True))+geom_point(col = "steelblue")+
+  annotate("text",x=max(result$Predict)-1, y=max(result$True),label = sprintf("c-index:%f", cindex_ridge))
+p_result
+
+# plot KM curves
+High_risk = ifelse(result$Predicted>median(result$Predicted), T, F)
+result$high_risk = High_risk
+cox = survfit(Surv(True, rep(1, nrow(result)))~high_risk, data = result)
+eope_km = ggsurvplot(cox, result, conf.int = T, pval = T, pval.method = T, pval.size = 4, pval.coord = c(70, 0.7), pval.method.coord = c(70, 0.8),
+                     font.x = 12,font.y = 12, font.tickslab=12, font.title = 9, font.legend = 12,xlab = NULL)
+eope_km
+
+# plot individual scatterplots
+p1 = ggplot(df, aes(x = diag_GA, y=time_to_deliver))+geom_point(col = "steelblue", size = 0.5)
+p2 = ggplot(df, aes(x = age, y=time_to_deliver))+geom_point(col = "steelblue", size = 0.5)
+p3 = ggplot(df, aes(x = as.factor(EPIS_PARA_COUNT), y=time_to_deliver))+geom_violin(col = "steelblue")+
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+p4 = ggplot(df, aes(x = as.factor(EPIS_GRAVIDA_COUNT), y=time_to_deliver))+geom_violin(col = "steelblue")+
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+p5 = ggplot(df, aes(x = as.factor(SeverePE), y=time_to_deliver))+geom_boxplot(fill = "steelblue")
+p6= ggplot(df, aes(x = as.factor(past_pe), y= time_to_deliver))+geom_boxplot(fill = "steelblue")
+grid.arrange(p1,p2,p3,p4,p5,p6, ncol=3)
+
+
+
+# create the coxph model with ridge regularization
+# baseline_reduced = baseline%>%select(diag_GA, SeverePE, past_pe, EPIS_PARA_COUNT, EPIS_GRAVIDA_COUNT, age, time_to_deliver)
+# x_train = as.matrix(baseline_reduced%>%dplyr::select(-time_to_deliver))
+# y_train = baseline_reduced%>%select(time_to_deliver)
+# y_train = data.frame(time = y_train, status = rep(1, length(ytrain)))
+# colnames(y_train)[1] = "time"
+# y_train = as.matrix(y_train)
+# 
+# train_ridge <-cv.glmnet(x_train, y_train, nfolds = 5, family = "cox", alpha = 0)
+# train_theta = predict(train_ridge, x_train, s=train_ridge$lambda.min,type='link')
+# cindex_ridge_train = Cindex(train_theta, y_train)
+# cindex_ridge_train
+#save(train_ridge,file = "cox_ph_model0420.RData")
+
+```
