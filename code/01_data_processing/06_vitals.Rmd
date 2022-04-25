@@ -112,4 +112,34 @@ BPSysNonInvasive$BPSysSD[is.na(BPSysNonInvasive$BPSysSD)] = 0
 
 delivery_final_v9 = delivery_final_v9%>%left_join(BPDiaNonInvasive)
 delivery_final_v9 = delivery_final_v9%>%left_join(BPSysNonInvasive)
+
+
+#remove pregnancies missing both vitals and labs 
+delivery_final_v9 <- delivery_final_v9[!(is.na(delivery_final_v9$hematocrit_lab_result)), ]
+
+#remove multgest_dx_date (cannot be run in mice)
+delivery_final_v9=delivery_final_v9%>%
+  select(-multgest_dx_date)
+
+```
+
+```{r}
+## Impute missing data using MICE - code referenced from Xiaotong Yang
+
+library(mice)
+
+# load current full dataset with both baseline var and lab/vitals
+# Turn infinite values(if any) into missing values
+delivery_final_v9 =do.call(data.frame,lapply(delivery_final_v9, function(x) replace(x, is.infinite(x),NA)))
+final_data_v9_mice = mice(delivery_final_v9,m=1)
+delivery_final_v9 = complete(final_data_v9_mice)
+
+```
+
+```{r, message=FALSE}
+# file name
+file_name="delivery_linked_v9.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```
