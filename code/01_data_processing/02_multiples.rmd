@@ -76,7 +76,7 @@ mult_all=multiple$perinatal_dx_code
 
 # perinatal codes
 ehr_codes
-length(unique(ehr_codes$part_id))  #22051 moms
+length(unique(ehr_codes$part_id))  #18699 moms
 
 # create logic: 1= match %in% outcomes, 0= no match  
 ehr_mult = ehr_codes %>%

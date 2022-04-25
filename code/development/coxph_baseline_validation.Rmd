@@ -1,5 +1,4 @@
 ```{r, include=FALSE}
-
 library(glmnet)
 library(survival)
 library(dplyr)
@@ -8,16 +7,26 @@ library(gridExtra)
 # load UF validation set 
 
 
-df=delivery_final_v9
-df = df%>%select(weeks, SeverePE, past_pe, parity, gravidity, mom_age_delivery, time_to_deliver)
-xtest = as.matrix(df%>%dplyr::select(-time_to_deliver))
+names(delivery_final_v9)[names(delivery_final_v9)== "parity"]<-"EPIS_PARA_COUNT"
+names(delivery_final_v9)[names(delivery_final_v9)== "gravidity"]<-"EPIS_GRAVIDA_COUNT"
+names(delivery_final_v9)[names(delivery_final_v9)== "mom_age_delivery"]<-"age"
+delivery_final_v9$time_to_deliver<-as.numeric(delivery_final_v9$time_to_deliver)
+
+df = delivery_final_v9
+
+df=df%>%
+  group_by(mom_id)%>%
+  ungroup()
+
+
+df = df%>%select(diag_GA, SeverePE, past_pe, EPIS_PARA_COUNT, EPIS_GRAVIDA_COUNT, age, time_to_deliver)
+xtest = data.matrix(df%>%dplyr::select(-time_to_deliver))
 ytest = df%>%dplyr::select(time_to_deliver)
 ytest = data.frame(time = unlist(ytest), status = rep(1, length(ytest)))
 colnames(ytest)[1] = "time"
 
 #calculate c-index for cox-ph using pre-trained model
-load("cox_ph_model0420.RData")
-
+#load("cox_ph_model0420.RData")
 test_ridge <- predict(train_ridge, xtest ,s=train_ridge$lambda.min,type='link')
 cindex_ridge <- round(Cindex(test_ridge, ytest),3)
 cindex_ridge
@@ -51,17 +60,45 @@ grid.arrange(p1,p2,p3,p4,p5,p6, ncol=3)
 
 
 # create the coxph model with ridge regularization
-# baseline_reduced = baseline%>%select(diag_GA, SeverePE, past_pe, EPIS_PARA_COUNT, EPIS_GRAVIDA_COUNT, age, time_to_deliver)
-# x_train = as.matrix(baseline_reduced%>%dplyr::select(-time_to_deliver))
-# y_train = baseline_reduced%>%select(time_to_deliver)
-# y_train = data.frame(time = y_train, status = rep(1, length(ytrain)))
-# colnames(y_train)[1] = "time"
-# y_train = as.matrix(y_train)
+ baseline_reduced = delivery_final_v9%>%select(diag_GA, SeverePE, past_pe, EPIS_PARA_COUNT, EPIS_GRAVIDA_COUNT, age, time_to_deliver)
+ 
+ baseline_reduced=baseline_reduced%>%
+   group_by(mom_id)%>%
+   ungroup()%>%
+   select(-mom_id)
+  for(i in c(1:nrow(baseline_reduced))){
+  if(baseline_reduced$time_to_deliver[i] == 0){
+    baseline_reduced$time_to_deliver[i] = 0.5
+  }
+}
+
+ x_train = data.matrix(baseline_reduced%>%dplyr::select(-time_to_deliver))
+ y_train = baseline_reduced%>%select(time_to_deliver)
+ y_train = data.frame(time = unlist(y_train), status = rep(1, length(y_train)))
+ colnames(y_train)[1] = "time"
+ y_train = as.matrix(y_train)
+ 
+
 # 
-# train_ridge <-cv.glmnet(x_train, y_train, nfolds = 5, family = "cox", alpha = 0)
-# train_theta = predict(train_ridge, x_train, s=train_ridge$lambda.min,type='link')
-# cindex_ridge_train = Cindex(train_theta, y_train)
-# cindex_ridge_train
+ train_ridge <-cv.glmnet(x_train, y_train, nfolds = 5, family = "cox", alpha = 0)
+ train_theta = predict(train_ridge, x_train, s=train_ridge$lambda.min,type='link')
+ cindex_ridge_train = Cindex(train_theta, y_train)
+ cindex_ridge_train
 #save(train_ridge,file = "cox_ph_model0420.RData")
+ 
+# plot the predicted vs true value scatterplot
+result = data.frame(test_ridge, ytest[,1])
+colnames(result) = c("Predicted", "True")
+p_result = ggplot(result, aes(x = Predicted, y=True))+geom_point(col = "steelblue")+
+  annotate("text",x=max(result$Predict)-1, y=max(result$True),label = sprintf("c-index:%f", cindex_ridge))
+p_result
+
+# plot KM curves
+High_risk = ifelse(result$Predicted>median(result$Predicted), T, F)
+result$high_risk = High_risk
+cox = survfit(Surv(True, rep(1, nrow(result)))~high_risk, data = result)
+eope_km = ggsurvplot(cox, result, conf.int = T, pval = T, pval.method = T, pval.size = 4, pval.coord = c(70, 0.7), pval.method.coord = c(70, 0.8),
+                     font.x = 12,font.y = 12, font.tickslab=12, font.title = 9, font.legend = 12,xlab = NULL)
+eope_km
 
 ```

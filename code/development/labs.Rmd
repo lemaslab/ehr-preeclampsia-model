@@ -1,0 +1,298 @@
+---
+title: "Process Lab Data"
+author: "Hailey Ballard"
+date: "04/21/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        April 21, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) Clean lab data
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(dplyr)
+library(sjmisc)
+library(data.table)
+library(lubridate)
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# delivery_final_v8: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+load("~/ehr-preeclampsia-model/data/raw/mom_labs.rda")
+
+```
+
+```{r}
+
+data_labs=df
+#add year of delivery to mom ID
+data_labs$lab_date<-as.Date(data_labs$lab_date)
+
+data_labs=data_labs%>%
+  mutate(year=lubridate::year(lab_date))
+
+data_labs$part_id<-paste(data_labs$part_id, data_labs$year, sep = "_")
+
+#select mom ID, lab date, and lab type/result
+data_labs=data_labs%>%
+  select(part_id, lab_date, lab_name, lab_result, lab_unit)
+
+```
+
+```{r}
+
+#Filter labs for variables included in model
+
+data_labs=data_labs%>%
+  filter(grepl("ALT |AST |CREATININE|HEMATOCRIT|HEMOGLOBIN|MEAN CORPUSCULAR HEMOGLOBIN|MEAN CORPUSCULAR HEMOGLOBIN CONC|MEAN CORPUSCULAR VOLUME|MEAN PLATELET VOLUME|PLATELET COUNT|RED BLOOD COUNT|RED CELL DISTRIBUTION WIDTH|WHITE BLOOD CELL COUNT", lab_name))
+
+delivery_data<-delivery_final_v9
+names(data_labs)[names(data_labs) == "part_id"] <- "mom_id"
+
+# [X] ALT
+# select lab test done around the first diagnosis
+ALT = data_labs%>%
+  filter(grepl("ALT", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(ALT)[names(ALT) == "lab_result"] <- "alt_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(ALT, by=c("mom_id"))
+
+
+# [X] AST
+# select lab test done around the first diagnosis
+AST = data_labs%>%
+  filter(grepl("AST", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(AST)[names(AST) == "lab_result"] <- "ast_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(AST, by=c("mom_id"))
+
+
+# [X] Hematocrit
+# select lab test done around the first diagnosis
+hematocrit = data_labs%>%
+  filter(grepl("HEMATOCRIT", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(hematocrit)[names(hematocrit) == "lab_result"] <- "hematocrit_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(hematocrit, by=c("mom_id"))
+
+# [X] HEMOGLOBIN
+# select lab test done around the first diagnosis
+hemoglobin = data_labs%>%
+  filter(grepl("HEMOGLOBIN", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(hemoglobin)[names(hemoglobin) == "lab_result"] <- "hemoglobin_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(hemoglobin, by=c("mom_id"))
+
+# [X] MEAN CORPUSCULAR HEMOGLOBIN
+# select lab test done around the first diagnosis
+mch = data_labs%>%
+  filter(grepl("MEAN CORPUSCULAR HEMOGLOBIN", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(mch)[names(mch) == "lab_result"] <- "mch_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(mch, by=c("mom_id"))
+
+# [X] MEAN CORPUSCULAR HEMOGLOBIN CONC 
+# select lab test done around the first diagnosis
+mchc = data_labs%>%
+  filter(grepl("MEAN CORPUSCULAR HEMOGLOBIN CONC", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(mchc)[names(mchc) == "lab_result"] <- "mchc_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(mchc, by=c("mom_id"))
+
+# [X] MEAN CORPUSCULAR VOLUME 
+# select lab test done around the first diagnosis
+mcv = data_labs%>%
+  filter(grepl("MEAN CORPUSCULAR VOLUME", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(mcv)[names(mcv) == "lab_result"] <- "mcv_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(mcv, by=c("mom_id"))
+
+
+# [X] MEAN PLATELET VOLUME   
+# select lab test done around the first diagnosis
+mpv = data_labs%>%
+  filter(grepl("MEAN PLATELET VOLUME", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(mpv)[names(mpv) == "lab_result"] <- "mpv_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(mpv, by=c("mom_id"))
+
+# [X] PLATELET COUNT  
+# select lab test done around the first diagnosis
+platelet_count = data_labs%>%
+  filter(grepl("PLATELET COUNT", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(platelet_count)[names(platelet_count) == "lab_result"] <- "platelet_count_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(platelet_count, by=c("mom_id"))
+
+# [X] RED BLOOD COUNT
+# select lab test done around the first diagnosis
+red_count = data_labs%>%
+  filter(grepl("RED BLOOD COUNT", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(red_count)[names(red_count) == "lab_result"] <- "red_count_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(red_count, by=c("mom_id"))
+
+# [X] RED CELL DISTRIBUTION WIDTH
+# select lab test done around the first diagnosis
+red_distrib = data_labs%>%
+  filter(grepl("RED CELL DISTRIBUTION WIDTH", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(red_distrib)[names(red_distrib) == "lab_result"] <- "red_distrib_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(red_distrib, by=c("mom_id"))
+
+# [X] WHITE BLOOD CELL COUNT
+# select lab test done around the first diagnosis
+white_count = data_labs%>%
+  filter(grepl("WHITE BLOOD CELL COUNT", lab_name))%>%
+  mutate(lab_result = as.numeric(lab_result))%>%
+  select(mom_id, lab_date,lab_result)%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  arrange(lab_date)%>%
+  select(mom_id, lab_result)%>%
+  slice(1)
+
+names(white_count)[names(white_count) == "lab_result"] <- "white_count_lab_result"
+
+delivery_final_v9 = delivery_final_v9%>%left_join(white_count, by=c("mom_id"))
+
+```
+
+```{r, message=FALSE}
+# file name
+file_name="delivery_linked_v9.rda"
+data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
+```

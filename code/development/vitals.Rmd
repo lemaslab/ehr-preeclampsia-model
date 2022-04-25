@@ -1,0 +1,115 @@
+---
+title: "Process Vitals Data"
+author: "Hailey Ballard"
+date: "04/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        April 23, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) Clean vitals data
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(dplyr)
+library(sjmisc)
+library(data.table)
+library(lubridate)
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# delivery_final_v8: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+load("~/ehr-preeclampsia-model/data/raw/mom_vitals.rda")
+
+```
+
+```{r}
+data_vitals=df
+delivery_data<-delivery_final_v9
+#add year of delivery to mom ID
+data_vitals$prenatal_bp_date<-as.Date(data_vitals$prenatal_bp_date)
+
+data_vitals=data_vitals%>%
+  mutate(year=lubridate::year(prenatal_bp_date))
+
+data_vitals$part_id<-paste(data_vitals$part_id, data_vitals$year, sep = "_")
+
+#select mom ID, lab date, and lab type/result
+data_vitals=data_vitals%>%
+  select(part_id, prenatal_bp_date, prenatal_bp)
+
+#rename part_id to mom_id (for merging later)
+names(data_vitals)[names(data_vitals) == "part_id"] <- "mom_id"
+
+#filter dataset for moms included in final dataset (v9)
+moms_final=delivery_final_v9$mom_id
+data_vitals=data_vitals%>%
+  filter(mom_id %in% moms_final)
+
+#split systolic (first) and diastolic (second) bp values on /
+data_vitals=data_vitals%>%
+  separate(prenatal_bp, c("Systolic", "Diastolic"))
+
+#make systolic and diastolic numeric values
+data_vitals$Systolic=as.numeric(data_vitals$Systolic)
+data_vitals$Diastolic=as.numeric(data_vitals$Diastolic)
+
+
+#Calculate mean, min, max, standard dev for diastolic bp
+BPDiaNonInvasive = data_vitals%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date > perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  summarise(BPDiaMax = max(Diastolic, na.rm = T), 
+            BPDiaMin = min(Diastolic, na.rm = T), 
+            BPDiaMean = mean(Diastolic, na.rm = T), 
+            BPDiaSD = sd(Diastolic, na.rm = T))
+BPDiaNonInvasive$BPDiaSD[is.na(BPDiaNonInvasive$BPDiaSD)] = 0
+
+
+#Calculate mean, min, max, standard dev for systolic bp
+BPSysNonInvasive = data_vitals%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date > perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  summarise(BPSysMax = max(Systolic, na.rm = T), 
+            BPSysMin = min(Systolic, na.rm = T), 
+            BPSysMean = mean(Systolic, na.rm = T), 
+            BPSysSD = sd(Systolic, na.rm = T))
+BPSysNonInvasive$BPSysSD[is.na(BPSysNonInvasive$BPSysSD)] = 0
+
+
+delivery_final_v9 = delivery_final_v9%>%left_join(BPDiaNonInvasive)
+delivery_final_v9 = delivery_final_v9%>%left_join(BPSysNonInvasive)
+```
