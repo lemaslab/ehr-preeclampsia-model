@@ -101,7 +101,7 @@ BPDiaNonInvasive$BPDiaSD[is.na(BPDiaNonInvasive$BPDiaSD)] = 0
 #Calculate mean, min, max, standard dev for systolic bp
 BPSysNonInvasive = data_vitals%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date > perinatal_dx_date-5)%>%
+  #filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date > perinatal_dx_date-5)%>%
   group_by(mom_id)%>%
   summarise(BPSysMax = max(Systolic, na.rm = T), 
             BPSysMin = min(Systolic, na.rm = T), 
@@ -115,11 +115,26 @@ delivery_final_v9 = delivery_final_v9%>%left_join(BPSysNonInvasive)
 
 
 #remove pregnancies missing both vitals and labs 
-delivery_final_v9 <- delivery_final_v9[!(is.na(delivery_final_v9$hematocrit_lab_result)), ]
+delivery_final_v9 <- delivery_final_v9[!(is.na(delivery_final_v9$ALT)), ]
 
 #remove multgest_dx_date (cannot be run in mice)
 delivery_final_v9=delivery_final_v9%>%
   select(-multgest_dx_date)
+
+delivery_final_v9$creatinine_value<-as.numeric(as.character(delivery_final_v9$creatinine_value))
+delivery_final_v9$ALT<-as.numeric(as.character(delivery_final_v9$ALT))
+delivery_final_v9$AST<-as.numeric(as.character(delivery_final_v9$AST))
+delivery_final_v9$Hematocrit<-as.numeric(as.character(delivery_final_v9$Hematocrit))
+delivery_final_v9$Hemoglobin<-as.numeric(as.character(delivery_final_v9$Hemoglobin))
+delivery_final_v9$Mean_Corpuscular_Hgb<-as.numeric(as.character(delivery_final_v9$Mean_Corpuscular_Hgb))
+delivery_final_v9$Mean_Corpuscular_Hgb_Conc<-as.numeric(as.character(delivery_final_v9$Mean_Corpuscular_Hgb_Conc))
+delivery_final_v9$Mean_Corpuscular_Vol<-as.numeric(as.character(delivery_final_v9$Mean_Corpuscular_Vol))
+delivery_final_v9$Platelet_Count<-as.numeric(as.character(delivery_final_v9$Platelet_Count))
+delivery_final_v9$Red_Blood_Cell_Count<-as.numeric(as.character(delivery_final_v9$Red_Blood_Cell_Count))
+delivery_final_v9$Red_Cell_Distribution_Width<-as.numeric(as.character(delivery_final_v9$Red_Cell_Distribution_Width))
+delivery_final_v9$White_Blood_Cell_Count<-as.numeric(as.character(delivery_final_v9$White_Blood_Cell_Count))
+
+
 
 ```
 
@@ -139,7 +154,7 @@ delivery_final_v9 = complete(final_data_v9_mice)
 ```{r, message=FALSE}
 # file name
 file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```
