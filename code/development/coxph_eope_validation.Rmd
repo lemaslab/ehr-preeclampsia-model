@@ -1,13 +1,13 @@
 ```{r}
-# cox-ph full model validation
+# cox-ph EOPE model validation
 library(glmnet)
 library(survival)
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
 library(survminer)
-# load UF validation set
-#load delivery final v9
+library(tidyverse)
+library(dplyr)
 load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
 
 
@@ -15,16 +15,19 @@ names(delivery_final_v9)[names(delivery_final_v9)== "parity"]<-"EPIS_PARA_COUNT"
 names(delivery_final_v9)[names(delivery_final_v9)== "gravidity"]<-"EPIS_GRAVIDA_COUNT"
 names(delivery_final_v9)[names(delivery_final_v9)== "mom_age_delivery"]<-"age"
 
+#filter dataset to diag_GA < 34 weeks
+eope=delivery_final_v9%>%
+  filter(!diag_GA>238)
 
+# load UF validation set 
+df = eope
 
-delivery_final_v9$time_to_deliver<-as.numeric(delivery_final_v9$time_to_deliver)
-
-df = delivery_final_v9
-
-df=df%>%
-  group_by(mom_id)%>%
-  ungroup()
-
+# convert zeros in time_to_deliver to 0.5
+for(i in c(1:nrow(df))){
+  if(df$time_to_deliver[i] == 0){
+    df$time_to_deliver[i] = 0.5
+  }
+}
 
 # plot individual scatterplots
 p1 = ggplot(df, aes(x = creatinine_value, y=time_to_deliver))+geom_point(col = "steelblue", size = 0.5)
@@ -51,34 +54,23 @@ p19 = ggplot(df, aes(x = BPSysMean, y=time_to_deliver))+geom_point(col = "steelb
 p20= ggplot(df, aes(x = BPSysSD, y= time_to_deliver))+geom_point(col = "steelblue", size = 0.5)
 grid.arrange(p13,p14,p15,p16,p17,p18,p19,p20, ncol=4)
 
-
-# Model validation ----------------------------------
-df = df%>%select(diag_GA, AST, White_Blood_Cell_Count,SeverePE,BPDiaMax,BPSysMin,EPIS_PARA_COUNT,creatinine_value,BPDiaMin,BPDiaSD,BPSysMean, time_to_deliver)
-# fill RRSD with 0
-df$RRSD = rep(0, nrow(df))
-# convert zeros in time_to_deliver to 0.5
-for(i in c(1:nrow(df))){
-  if(df$time_to_deliver[i] == 0){
-    df$time_to_deliver[i] = 0.5
-  }
-}
-
-df$SeverePE<-as.numeric(df$SeverePE)
+df = df%>%dplyr::select(EPIS_PARA_COUNT, NUMBER_OF_FETUSES, diag_GA, RRMin, SeverePE, creatinine_value, Platelet_Count, AST, BPDiaMean, RRSD,
+                        BPSysSD,RRMin,past_pe,Coagulopathy, time_to_deliver)
 
 # scale numeric variables
-for(i in c(1:11)){
+for(i in c(1:13)){
   df[,i] = scale(df[,i], center = F)
 }
 
 
 xtest = data.matrix(df%>%dplyr::select(-time_to_deliver))
 ytest = df%>%dplyr::select(time_to_deliver)
-ytest = data.frame(time = unlist(ytest), status = rep(1, length(ytest)))
+ytest = data.frame(time = ytest, status = rep(1, length(ytest)))
 colnames(ytest)[1] = "time"
 
 #calculate c-index for cox-ph using pre-trained model
-#load("coxph_full_model0425.RData")
-test_ridge <- predict(train_ridge, unlist(xtest) ,s=train_ridge$lambda.min,type='link')
+load("coxph_eope_model0502.RData")
+test_ridge <- predict(train_ridge, xtest ,s=train_ridge$lambda.min,type='link')
 cindex_ridge <- round(Cindex(test_ridge, ytest),3)
 cindex_ridge
 
@@ -100,13 +92,13 @@ eope_km
 # build coxph full model
 # x_train = as.matrix(df%>%dplyr::select(-time_to_deliver))
 # y_train = df%>%select(time_to_deliver)
-# y_train = data.frame(time = unlist(y_train), status = rep(1, length(y_train)))
+# y_train = data.frame(time = y_train, status = rep(1, length(y_train)))
 # colnames(y_train)[1] = "time"
-## y_train = as.matrix(y_train)
+# y_train = as.matrix(y_train)
 # 
 # train_ridge <-cv.glmnet(x_train, y_train, nfolds = 5, family = "cox", alpha = 0)
 # train_theta = predict(train_ridge, x_train, s=train_ridge$lambda.min,type='link')
- #cindex_ridge_train = Cindex(train_theta, y_train)
+# cindex_ridge_train = Cindex(train_theta, y_train)
 # cindex_ridge_train
-# save(train_ridge,file = "coxph_full_model0425.RData")
+# save(train_ridge,file = "coxph_eope_model0502.RData")
 ```

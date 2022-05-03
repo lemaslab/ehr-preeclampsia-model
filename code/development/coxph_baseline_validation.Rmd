@@ -62,10 +62,10 @@ grid.arrange(p1,p2,p3,p4,p5,p6, ncol=3)
 # create the coxph model with ridge regularization
  baseline_reduced = delivery_final_v9%>%select(diag_GA, SeverePE, past_pe, EPIS_PARA_COUNT, EPIS_GRAVIDA_COUNT, age, time_to_deliver)
  
- baseline_reduced=baseline_reduced%>%
-   group_by(mom_id)%>%
-   ungroup()%>%
-   select(-mom_id)
+# baseline_reduced=baseline_reduced%>%
+  # group_by(mom_id)%>%
+  # ungroup()%>%
+  # select(-mom_id)
   for(i in c(1:nrow(baseline_reduced))){
   if(baseline_reduced$time_to_deliver[i] == 0){
     baseline_reduced$time_to_deliver[i] = 0.5

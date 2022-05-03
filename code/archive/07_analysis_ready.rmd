@@ -126,7 +126,7 @@ write_csv(demo_ready_v1, file=data_export_path)
 # demo-final
 ehr_ready=ehr_data %>%
   select(-part_id,-multgest_dx_type,-multgest_icd_code,-baby_gest_age_raw,
-         -delivery_admit_date,-gest_start_date,-pregnancy_start_date,-multgest_dx_date,
+         -delivery_admit_date,-gest_start_date,-pregnancy_start_date,
          -multgest_dx_code,-multgest_dx_descrip,-multgest_dx_gestation,-multgest_dx_category,-perinatal_dx_date) %>%
   #mutate(multgest_dx_subcategory=as_factor(multgest_dx_subcategory)) %>%
   mutate(NUMBER_OF_FETUSES=recode(multgest_dx_subcategory,
@@ -134,16 +134,8 @@ ehr_ready=ehr_data %>%
                                   triplet="3",
                                   multiple="3",
                                   quadruplet="3",
-                                  .missing = "1")) %>%
-  select(-multgest_dx_subcategory,-days,-pe_late,-prenatal_pe_logic) %>%
- rename(diag_GA = weeks, 
-               EPIS_GRAVIDA_COUNT=gravidity,
-               EPIS_PARA_COUNT=parity, 
-               age=mom_age_delivery,
-               eope=pe_early,) %>%
-  group_by(mom_id, part_dob) %>% slice(1) %>% ungroup() %>%
-  mutate(eope = ifelse(is.na(eope), 0, eope))%>%
-  select(-mom_id,-baby_id,-part_dob)
+                                  .missing = "1"))%>%
+  select(-multgest_dx_subcategory)
 
   
 
@@ -159,12 +151,12 @@ ehr_ready =ehr_ready %>%
 ehr_ready = ehr_ready%>%filter(!is.na(EPIS_GRAVIDA_COUNT)&!is.na(EPIS_PARA_COUNT)&!is.na(NUMBER_OF_FETUSES)&!is.na(diag_GA))
 
 
-int_var = c("diag_GA","EPIS_GRAVIDA_COUNT",  "EPIS_PARA_COUNT",  "NUMBER_OF_FETUSES","age")
+int_var = c("diag_GA","EPIS_GRAVIDA_COUNT", "NUMBER_OF_FETUSES", "EPIS_PARA_COUNT","age")
 for (i in int_var){
   ehr_ready[,i] = as.integer(unlist(ehr_ready[,i]))
 }
 
-num_var = c("diag_GA","EPIS_GRAVIDA_COUNT", "EPIS_PARA_COUNT", "NUMBER_OF_FETUSES","age")
+num_var = c("diag_GA","EPIS_GRAVIDA_COUNT", "NUMBER_OF_FETUSES", "EPIS_PARA_COUNT","age")
 for(i in c(1:ncol(ehr_ready))){
   if(colnames(ehr_ready)[i]%in%num_var){
     ehr_ready[,i] = scale(ehr_ready[,i], center = F)
@@ -179,7 +171,5 @@ data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/demo/")
 data_export_path=paste0(data_export_directory,file_name)
 write_csv(data_ready_v2, file=data_export_path)
 
-# shiny ap output (base predictors): C-index of Cox-nnet model  : 0.49 
-#                                   C-index of the Cox-ph model: 0.543
-
+write.csv(data_ready_v2, "~/GitHub/ehr-preeclampsia-model/data/demo/data_ready_v2.csv", row.names = FALSE)
 ```

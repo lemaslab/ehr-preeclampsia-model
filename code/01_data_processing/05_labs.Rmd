@@ -79,7 +79,10 @@ names(data_labs)[names(data_labs) == "part_id"] <- "mom_id"
 
 # select lab test done around the first diagnosis
 creatinine = data_labs%>%
-  filter(grepl("CREATININE ", lab_name))%>%
+  filter(grepl("CREATININE", lab_name))%>%
+  filter(!grepl("CREATININE URINE", lab_name))%>%
+  filter(!grepl("CREATININE,", lab_name))%>%
+  filter(!grepl("CREATININE-", lab_name))%>%
   filter(grepl("mg/dL", lab_unit))%>%
  # mutate(lab_result = as.numeric(aslab_result))%>%
   select(mom_id, lab_date,lab_result)%>%

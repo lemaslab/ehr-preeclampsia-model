@@ -41,6 +41,7 @@ library(dplyr)
 library(sjmisc)
 library(data.table)
 library(lubridate)
+
 ```
 
 ```{r, message=FALSE}
@@ -114,8 +115,6 @@ delivery_final_v9 = delivery_final_v9%>%left_join(BPDiaNonInvasive)
 delivery_final_v9 = delivery_final_v9%>%left_join(BPSysNonInvasive)
 
 
-#remove pregnancies missing both vitals and labs 
-delivery_final_v9 <- delivery_final_v9[!(is.na(delivery_final_v9$ALT)), ]
 
 #remove multgest_dx_date (cannot be run in mice)
 delivery_final_v9=delivery_final_v9%>%
@@ -139,10 +138,18 @@ delivery_final_v9$White_Blood_Cell_Count<-as.numeric(as.character(delivery_final
 ```
 
 ```{r}
-## Impute missing data using MICE - code referenced from Xiaotong Yang
 
+
+#remove pregnancies missing both vitals and labs 
+#delivery_final_v9<-delivery_final_v9%>%
+  #drop_na(AST)
+
+delivery_final_v9=delivery_final_v9[rowSums(is.na(delivery_final_v9[38:57])) <19L,]
+```
+
+```{r}
 library(mice)
-
+## Impute missing data using MICE - code referenced from Xiaotong Yang
 # load current full dataset with both baseline var and lab/vitals
 # Turn infinite values(if any) into missing values
 delivery_final_v9 =do.call(data.frame,lapply(delivery_final_v9, function(x) replace(x, is.infinite(x),NA)))
