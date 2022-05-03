@@ -14,10 +14,19 @@ load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
 names(delivery_final_v9)[names(delivery_final_v9)== "parity"]<-"EPIS_PARA_COUNT"
 names(delivery_final_v9)[names(delivery_final_v9)== "gravidity"]<-"EPIS_GRAVIDA_COUNT"
 names(delivery_final_v9)[names(delivery_final_v9)== "mom_age_delivery"]<-"age"
+delivery_final_v9=delivery_final_v9%>%
+  mutate(NUMBER_OF_FETUSES=recode(multgest_dx_subcategory,
+                                  twin="2", 
+                                  triplet="3",
+                                  multiple="3",
+                                  quadruplet="3",
+                                  .missing = "1"))
 
 #filter dataset to diag_GA < 34 weeks
 eope=delivery_final_v9%>%
   filter(!diag_GA>238)
+  
+
 
 # load UF validation set 
 df = eope
@@ -54,22 +63,36 @@ p19 = ggplot(df, aes(x = BPSysMean, y=time_to_deliver))+geom_point(col = "steelb
 p20= ggplot(df, aes(x = BPSysSD, y= time_to_deliver))+geom_point(col = "steelblue", size = 0.5)
 grid.arrange(p13,p14,p15,p16,p17,p18,p19,p20, ncol=4)
 
+df['RRMin']<-0
+df['RRSD']<-0
+df['Coagulopathy']<-0
+
+df$RRMin<-as.numeric(df$RRMin)
+df$RRSD<-as.numeric(df$RRSD)
+
 df = df%>%dplyr::select(EPIS_PARA_COUNT, NUMBER_OF_FETUSES, diag_GA, RRMin, SeverePE, creatinine_value, Platelet_Count, AST, BPDiaMean, RRSD,
                         BPSysSD,RRMin,past_pe,Coagulopathy, time_to_deliver)
 
+df$NUMBER_OF_FETUSES<-as.numeric(df$NUMBER_OF_FETUSES)
+df$SeverePE<-as.numeric(df$SeverePE)
+df$creatinine_value<-as.numeric(df$creatinine_value)
+df$Platelet_Count<-as.numeric(df$Platelet_Count)
+df$past_pe<-as.numeric(df$past_pe)
+
 # scale numeric variables
-for(i in c(1:13)){
+for(i in c(1:3,5:9,11:12)){
   df[,i] = scale(df[,i], center = F)
 }
 
 
 xtest = data.matrix(df%>%dplyr::select(-time_to_deliver))
 ytest = df%>%dplyr::select(time_to_deliver)
-ytest = data.frame(time = ytest, status = rep(1, length(ytest)))
+ytest = data.frame(time = unlist(ytest), status = rep(1, length(ytest)))
 colnames(ytest)[1] = "time"
+ytest = as.matrix(ytest)
 
 #calculate c-index for cox-ph using pre-trained model
-load("coxph_eope_model0502.RData")
+#load("coxph_eope_model0502.RData")
 test_ridge <- predict(train_ridge, xtest ,s=train_ridge$lambda.min,type='link')
 cindex_ridge <- round(Cindex(test_ridge, ytest),3)
 cindex_ridge
