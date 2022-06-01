@@ -45,7 +45,7 @@ library(readxl)
 ```{r, message=FALSE}
 
 # pe_codes: import icd-code information (1:1 structure)
-source("~/ehr-preeclampsia-model/code/utils/params.R")
+source("~/GitHub/ehr-preeclampsia-model/code/utils/params.R")
 
 # df: import perinatal icd-code EHR data (1:n structure)
 load("~/ehr-preeclampsia-model/data/processed/pe_codes_dob_v0.rda")
@@ -82,8 +82,8 @@ mom_unique=unique(ehr_logic$mom_id)
 # MERGE INTO LATEST DATA VERSION 
 
 # delivery data
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v3.rda")
-del_final=delivery_final_v3 
+#load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v3.rda")
+del_final=delivery_final_v4
 
 # ICD-Data: pe-onset status
 pe_severity=ehr_logic
@@ -103,7 +103,7 @@ delivery_final_v4=merge_final
 
 # file name
 file_name="delivery_linked_v4.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v4 %>% save(delivery_final_v4, file=data_export_path)
 

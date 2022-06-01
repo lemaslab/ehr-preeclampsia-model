@@ -1,0 +1,157 @@
+---
+title: "Table 1 Characteristics"
+author: "Hailey Ballard"
+date: "04/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        April 1, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) Filter the complete dataset for ONLY individuals who have PE
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(dplyr)
+library(sjmisc)
+library(data.table)
+library(questionr)
+library(gtsummary)
+library(gt)
+library(labelled)
+```
+
+```{r, message=FALSE}
+
+# pe_codes: import icd-code information (1:1 structure)
+source("~/ehr-preeclampsia-model/code/utils/params.R")
+
+# delivery_final_v8: import linked delivery data (1:1 structure)
+load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+
+```
+
+```{r}
+#gather list of all baby IDs in final dataset
+
+data_table1=delivery_final_v9
+table1_baby=data_table1$baby_id
+
+##add mom ID onto deidentified baby ID
+baby_mom_at_birth_with_payer$Deidentified_baby_ID<-paste0("baby-", baby_mom_at_birth_with_payer$Deidentified_baby_ID)
+
+#filter whole dataset for moms in final dataset
+characteristics=baby_mom_at_birth_with_payer%>%
+  filter(Deidentified_baby_ID %in% table1_baby)
+
+```
+
+```{r, message=FALSE}
+#Mean materna age
+mean_ma<-mean(characteristics$`Age at Encounter_mom`, trim=0.3)
+sd_ma<-sd(characteristics$`Age at Encounter_mom`)
+
+#gravidity
+mean_gravidity<-mean(delivery_final_v9$gravidity, trim=0.3)
+sd_gravidity<-sd(delivery_final_v9$gravidity)
+
+#parity
+mean_parity<-mean(delivery_final_v9$parity, trim=0.3)
+sd_parity<-sd(delivery_final_v9$parity)
+
+#Gestational age days
+delivery_final_v9$ga_weeks<-as.numeric(delivery_final_v9$weeks)*7
+delivery_final_v9$days[is.na(delivery_final_v9$days)] = 0
+delivery_final_v9$ga_weeks<-delivery_final_v9$ga_weeks+as.numeric(delivery_final_v9$days)
+mean_ga<-mean(delivery_final_v9$ga_weeks, trim=0.3)
+sd_parity<-sd(delivery_final_v9$ga_weeks)
+
+#time to deliver
+mean_ttd<-mean(as.numeric(delivery_final_v9$time_to_deliver, trim=0.3))
+sd_ttd<-sd(as.numeric(delivery_final_v9$time_to_deliver))
+
+
+```
+
+```{r}
+#Race and Ethnicity
+dat.race=characteristics%>%
+  select(Ethnicity_mom, Race_mom)%>%
+  as_tibble()
+
+dat_label=dat.race
+var_label(dat_label) <-list(Ethnicity_mom = "Ethnicity", 
+                            Race_mom = "Race")
+
+theme_gtsummary_compact()
+dat_label%>%
+  tbl_summary()%>%
+  as_gt()%>%
+  tab_header(title="Race and Ethnicity")
+
+```
+
+```{r}
+#Number of fetuses
+delivery_final_v9$multgest_dx_subcategory[is.na(delivery_final_v9$multgest_dx_subcategory)] = "0"
+
+delivery_final_v9=delivery_final_v9%>%
+  mutate(multgest_dx_subcategory=recode_factor(multgest_dx_subcategory,
+                                               "twin" = "2",
+                                               "triplet" = "3",
+                                               "quadruplet" = "4",
+                                               "multiple" = "1"))
+
+
+mean_multiple<-mean(as.numeric(delivery_final_v9$multgest_dx_subcategory))
+sd_multiple<-sd(as.numeric(delivery_final_v9$multgest_dx_subcategory))
+
+```
+
+```{r}
+#Comorbidities
+dat.comor=delivery_final_v9%>%
+  select(IllegalDrugUserStatusSourceNo, IllegalDrugUserStatusSourceYes, IllegalDrugUserStatusSourceNever, past_pe)%>%
+  as_tibble()
+
+dat_label=dat.comor%>%
+  select(-mom_id)
+
+var_label(dat_label) <-list(IllegalDrugUserStatusSourceNo = "No drug", 
+                            IllegalDrugUserStatusSourceYes = "Yes drug",
+                            IllegalDrugUserStatusSourceNever = "Never drug",
+                            past_pe = "History of PE")
+                            
+
+theme_gtsummary_compact()
+dat_label%>%
+  tbl_summary()%>%
+  as_gt()%>%
+  tab_header(title="Comorbidities")
+
+```

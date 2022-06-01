@@ -41,7 +41,7 @@ forms=c("demographics","delivery","anthropometrics","diagnosis_codes","labs",
 #-------------------
 # import code variables
 data.file.name="perinatal_ICD_codes_rawdata_01_2022.xlsx"
-data.dir=paste0("~/ehr-preeclampsia-model/documents/datadictionary/")
+data.dir=paste0("~/GitHub/ehr-preeclampsia-model/documents/datadictionary/")
 data_import_directory=paste0(data.dir,data.file.name)
 
 # multiple-gestation

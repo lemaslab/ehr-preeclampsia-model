@@ -1,0 +1,17 @@
+
+```{r pressure, echo=FALSE}
+library(dplyr)
+
+df_typ1_diabetes=df%>%
+  filter(grepl("Type 1 diabetes|type 1 diabetes", perinatal_dx_descrip))
+
+moms_type1=unique(df_typ1_diabetes$part_id)
+
+
+df_typ2_diabetes=df%>%
+  filter(grepl("Type 2 diabetes|type 2 diabetes", perinatal_dx_descrip))
+moms_type2=unique(df_typ2_diabetes$part_id)
+
+
+```
+

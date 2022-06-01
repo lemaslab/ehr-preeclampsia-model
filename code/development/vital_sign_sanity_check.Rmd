@@ -1,0 +1,34 @@
+```{r}
+library(ggplot)
+library(dplyr)
+library(gtsummary)
+library(gt)
+library(labelled)
+# check how many records does each patient have
+BPDiaNonInvasive = data_vitals%>%
+  inner_join(delivery_data,by=c("mom_id"))%>%
+  filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date > perinatal_dx_date-5)%>%
+  group_by(mom_id)%>%
+  summarise(BPDia_num = n())
+ggplot(BPDiaNonInvasive, aes(x = BPDia_num))+geom_histogram()
+
+# check if the max is larger than min for each patient
+df = delivery_final_v9
+boxplot(df$BPDiaMax-df$BPDiaMin, main = "DBP difference")
+boxplot(df$BPSysMax-df$BPSysMin, main = "SBP difference")
+
+#Sanity check table
+delivery_final_v9$late_pe<-ifelse(delivery_final_v9$diag_GA<238, "0", "1")
+dat_label=delivery_final_v9%>%
+  select(late_pe, SeverePE)%>%
+  ungroup()%>%
+  select(-mom_id)
+#generate table
+theme_gtsummary_compact()
+
+dat_label %>% 
+  tbl_summary(by = SeverePE) %>% 
+  add_overall() %>% add_p(pvalue_fun = function(x)style_pvalue(x,digits = 3)) %>%
+  as_gt() %>%
+  tab_header(title = "PE Type Check")
+```
