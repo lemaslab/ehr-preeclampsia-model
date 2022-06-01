@@ -79,6 +79,31 @@ col_types <- readr::cols(
 
 # participant records
 records=mom_list
+```
+
+```{r}
+# variables: perinatal diagnosis codes
+
+variables=c("part_id", "redcap_event_name", "redcap_repeat_instrument", "redcap_repeat_instance", "prenatal_bp_encounter_type", "prenatal_bp", "prenatal_bp_date", "prenatal_bp_measure", "prenatal_bp_units")
+
+# column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      redcap_repeat_instance = readr::col_factor(),
+      prenatal_bp_encounter_type = readr::col_factor(),
+      prenatal_bp	 = readr::col_character(),
+      prenatal_bp_date  = readr::col_character(),
+      prenatal_bp_measure = readr::col_character(),
+      prenatal_bp_units = readr::col_character()
+     )
+
+# participant records
+records=baby_list
+
+
+
 
 ```
 

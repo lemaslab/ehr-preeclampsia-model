@@ -47,14 +47,14 @@ library(lubridate)
 
 # pe_codes: import icd-code information (1:1 structure)
 
-mom_alcohol_release<-read_csv("~/Github/ehr-preeclampsia-model/data/raw/mom_alcohol_release.csv")
+mom_alcohol_release<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_alcohol_release.csv")
 
-mom_comorbidities_icd10<-read_csv("~/Github/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
+mom_comorbidities_icd10<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
 
-mom_comorbidities_icd9<-read_csv("~/Github/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
+mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
 
 #load delivery final v9
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
 
 mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9)
 mom_comorbidities_codes$Deidentified_mom_ID<-paste0("mom-", mom_comorbidities_codes$Deidentified_mom_ID)
@@ -214,7 +214,44 @@ moms_drug_use_past=unique(drug_use_past$Deidentified_mom_ID)
 
 delivery_final_v9$IllegalDrugUserStatusSourceNo<-ifelse(delivery_final_v9$mom_id %in% moms_drug_use_past, "1", "0")
 
+```
 
+#Coagulopathy
+```{r}
+coagulopathy=mom_comorbidities_codes%>%
+  filter(grepl("286|287.1|287.3287.4|287.5|D68|D69.1|D69.3|D69.4|D69.5|D69.6", mom_comorbidities_codes$`Diagnosis Code`)) 
+
+#Add year of delivery to PART ID
+coagulopathy=coagulopathy%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`)) 
+
+coagulopathy$Deidentified_mom_ID<-paste(coagulopathy$Deidentified_mom_ID, coagulopathy$year, sep = "_")
+
+coagulopathy=unique(coagulopathy$Deidentified_mom_ID)
+
+delivery_final_v9$Coagulopathy<-ifelse(delivery_final_v9$mom_id %in% coagulopathy, "1", "0")
+
+```
+
+#Pulmonary Circulation Disorders
+```{r}
+PulmonaryCirculationDisorders=mom_comorbidities_codes%>%
+  filter(grepl("416|417.9|I27|I28.0|I28.8|415.1", mom_comorbidities_codes$`Diagnosis Code`)) 
+
+#Add year of delivery to PART ID
+PulmonaryCirculationDisorders=PulmonaryCirculationDisorders%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`)) 
+
+PulmonaryCirculationDisorders$Deidentified_mom_ID<-paste(PulmonaryCirculationDisorders$Deidentified_mom_ID, PulmonaryCirculationDisorders$year, sep = "_")
+
+PulmonaryCirculationDisorders=unique(PulmonaryCirculationDisorders$Deidentified_mom_ID)
+
+delivery_final_v9$PulmonaryCirculationDisorders<-ifelse(delivery_final_v9$mom_id %in% PulmonaryCirculationDisorders, "1", "0")
+
+```
+
+#clean
+```{r}
 #drop NAs
 delivery_final_v9=delivery_final_v9%>%
   filter(!is.na(weeks)&!is.na(gravidity)&!is.na(parity))
@@ -236,7 +273,7 @@ delivery_final_v9$multiple_gestation[is.na(delivery_final_v9$multiple_gestation)
 ```{r, message=FALSE}
 # file name
 file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```

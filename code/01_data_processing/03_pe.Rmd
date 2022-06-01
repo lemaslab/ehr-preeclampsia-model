@@ -47,17 +47,34 @@ library(data.table)
 # pe_codes: import icd-code information (1:1 structure)
 source("~/ehr-preeclampsia-model/code/utils/params.R")
 
-# delivery_final_v8: import linked delivery data (1:1 structure)
 load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v1.rda")
 load("~/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
+mom_race<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/baby_mom_at_birth_with_payer.csv")
 
 ```
 
 ```{r, message=FALSE}
 
+#add mom race
+mom_race$Deidentified_mom_ID<-paste0("mom-", mom_race$Deidentified_mom_ID)
+
+mom_race_df=mom_race%>%
+  select(Deidentified_mom_ID, Race_mom)
+
+names(mom_race_df)[names(mom_race_df) == "Deidentified_mom_ID"] <- "mom_id"
+
+delivery_final_v1=merge(delivery_final_v1, mom_race_df, by="mom_id")
+
+delivery_final_v1$RaceName.African.American<-ifelse(delivery_final_v1$Race_mom == "BLACK", "1", "0")
+
+
+
+```
+
+
+```{r}
 #remove any duplicated baby IDs
 delivery_final_v9=delivery_final_v1[!duplicated(delivery_final_v1$baby_id), ]
-
 #filter codes for PE
 df_filtered=df%>%
   filter(grepl("pre-eclampsia|Pre-eclampsia", perinatal_dx_descrip))
@@ -161,7 +178,7 @@ delivery_final_v9<-delivery_final_v9[delivery_final_v9$diag_GA >=140, ]
 ```{r, message=FALSE}
 # file name
 file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```

@@ -144,7 +144,7 @@ delivery_final_v9$White_Blood_Cell_Count<-as.numeric(as.character(delivery_final
 #delivery_final_v9<-delivery_final_v9%>%
   #drop_na(AST)
 
-delivery_final_v9=delivery_final_v9[rowSums(is.na(delivery_final_v9[38:57])) <19L,]
+delivery_final_v9=delivery_final_v9[rowSums(is.na(delivery_final_v9[42:61])) <19L,]
 ```
 
 ```{r}
@@ -161,7 +161,7 @@ delivery_final_v9 = complete(final_data_v9_mice)
 ```{r, message=FALSE}
 # file name
 file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/GitHub/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```
