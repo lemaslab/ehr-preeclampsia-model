@@ -1,0 +1,97 @@
+---
+title: "Prep Data for ShinyApp"
+author: "Hailey Ballard"
+date: "07/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        July 8, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R 4.1.2 (2020-10-10)
+# version: Rstudio 2021.09.1 Build 372  
+
+# **************************************************************************** #
+# ***************                Objective                     *************** #
+# **************************************************************************** #
+
+# (1) Filter the complete dataset for ONLY individuals who have PE
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(dplyr)
+library(sjmisc)
+library(data.table)
+```
+
+```{r}
+#load final dataset
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+
+#
+
+names(delivery_final_v9)[names(delivery_final_v9)== "parity"]<-"EPIS_PARA_COUNT"
+names(delivery_final_v9)[names(delivery_final_v9)== "gravidity"]<-"EPIS_GRAVIDA_COUNT"
+names(delivery_final_v9)[names(delivery_final_v9)== "mom_age_delivery"]<-"age"
+delivery_final_v9=delivery_final_v9%>%
+  mutate(NUMBER_OF_FETUSES=recode(multgest_dx_subcategory,
+                                  twin="2", 
+                                  triplet="3",
+                                  multiple="3",
+                                  quadruplet="3",
+                                  .missing = "1"))
+
+for(i in c(1:nrow(delivery_final_v9))){
+  if(delivery_final_v9$time_to_deliver[i] == 0){
+    delivery_final_v9$time_to_deliver[i] = 0.5
+  }
+}
+
+#baseline
+data_baseline=delivery_final_v9%>%dplyr::select(diag_GA,SeverePE,past_pe,age,EPIS_PARA_COUNT,DiabetesUncomplicated,ValvularDisease,time_to_deliver)
+
+write.csv(data_baseline, "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/data_baseline.csv")
+
+```
+
+```{r}
+#EOPE Baseline
+
+eope_base_reduced=delivery_final_v9%>%
+  filter(!diag_GA>238)
+
+
+data_eope_baseline = eope_base_reduced
+
+
+data_eope_baseline = data_eope_baseline%>%dplyr::select(diag_GA, past_pe, EPIS_PARA_COUNT, Coagulopathy, PulmonaryCirculationDisorders, RaceName.African.American, SeverePE,
+                        time_to_deliver)
+
+# scale numeric variables
+for(i in c(1,3)){
+  data_eope_baseline[,i] = scale(data_eope_baseline[,i], center = F)
+}
+
+
+
+write.csv(data_eope_baseline, "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/data_eope_baseline.csv")
+
+```

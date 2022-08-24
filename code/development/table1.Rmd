@@ -44,15 +44,22 @@ library(questionr)
 library(gtsummary)
 library(gt)
 library(labelled)
+library(readr)
+library(lubridate)
 ```
 
 ```{r, message=FALSE}
 
-# pe_codes: import icd-code information (1:1 structure)
-source("~/ehr-preeclampsia-model/code/utils/params.R")
 
 # delivery_final_v8: import linked delivery data (1:1 structure)
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+baby_mom_at_birth_with_payer=read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/baby_mom_at_birth_with_payer.csv")
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
+
+##EOPE
+#filter dataset to diag_GA < 34 weeks
+delivery_final_v9=delivery_final_v9%>%
+  filter(!diag_GA>238)
 
 ```
 
@@ -85,15 +92,19 @@ mean_parity<-mean(delivery_final_v9$parity, trim=0.3)
 sd_parity<-sd(delivery_final_v9$parity)
 
 #Gestational age days
-delivery_final_v9$ga_weeks<-as.numeric(delivery_final_v9$weeks)*7
-delivery_final_v9$days[is.na(delivery_final_v9$days)] = 0
-delivery_final_v9$ga_weeks<-delivery_final_v9$ga_weeks+as.numeric(delivery_final_v9$days)
-mean_ga<-mean(delivery_final_v9$ga_weeks, trim=0.3)
-sd_parity<-sd(delivery_final_v9$ga_weeks)
+delivery_final_v9$time_difference=difftime(delivery_final_v9$perinatal_dx_date, delivery_final_v9$pregnancy_start_date)
+
+delivery_final_v9$time_difference<-gsub(" days", "", delivery_final_v9$time_difference)
+delivery_final_v9$time_difference<-as.numeric(delivery_final_v9$time_difference)
+
+mean_gad<-mean(delivery_final_v9$time_difference, trim=0.3)
+sd_gad<-sd(delivery_final_v9$time_difference)
+
 
 #time to deliver
-mean_ttd<-mean(as.numeric(delivery_final_v9$time_to_deliver, trim=0.3))
-sd_ttd<-sd(as.numeric(delivery_final_v9$time_to_deliver))
+delivery_final_v9$time_to_deliver<-as.numeric(delivery_final_v9$time_to_deliver)
+mean_ttd<-mean(delivery_final_v9$time_to_deliver, trim=0.3)
+sd_ttd<-sd(delivery_final_v9$time_to_deliver)
 
 
 ```
@@ -116,42 +127,77 @@ dat_label%>%
 
 ```
 
+
+```{r}
+#Smoking Status
+df=df%>%
+  filter(grepl("Tobacco|tobacco", perinatal_dx_descrip))
+
+df=df%>%
+  mutate(year=lubridate::year(perinatal_dx_date))
+
+df$mom_id<-paste(df$mom_id, df$year, sep = "_")
+
+moms_smoker=unique(df$mom_id)
+
+delivery_final_v9$smoker_current<-ifelse(delivery_final_v9$mom_id %in% moms_smoker, "1", "0")
+
+dat.smoker=delivery_final_v9%>%
+  select(smoker_current)%>%
+  as_tibble()
+
+theme_gtsummary_compact()
+dat.smoker%>%
+  tbl_summary()%>%
+  as_gt()%>%
+  tab_header(title="Smoker Current Status")
+
+```
+
 ```{r}
 #Number of fetuses
-delivery_final_v9$multgest_dx_subcategory[is.na(delivery_final_v9$multgest_dx_subcategory)] = "0"
 
 delivery_final_v9=delivery_final_v9%>%
   mutate(multgest_dx_subcategory=recode_factor(multgest_dx_subcategory,
-                                               "twin" = "2",
-                                               "triplet" = "3",
-                                               "quadruplet" = "4",
-                                               "multiple" = "1"))
+                                               "twin" = 2,
+                                               "triplet" = 3,
+                                               "quadruplet" = 4,
+                                               "multiple" = 1))
+
+delivery_final_v9$multgest_dx_subcategory[is.na(delivery_final_v9$multgest_dx_subcategory)] = 1
+
+delivery_final_v9$multgest_dx_subcategory<-as.numeric(as.character(delivery_final_v9$multgest_dx_subcategory))
 
 
-mean_multiple<-mean(as.numeric(delivery_final_v9$multgest_dx_subcategory))
-sd_multiple<-sd(as.numeric(delivery_final_v9$multgest_dx_subcategory))
+mean_multiple<-mean(delivery_final_v9$multgest_dx_subcategory)
+sd_multiple<-sd(delivery_final_v9$multgest_dx_subcategory)
+
 
 ```
 
 ```{r}
 #Comorbidities
-dat.comor=delivery_final_v9%>%
-  select(IllegalDrugUserStatusSourceNo, IllegalDrugUserStatusSourceYes, IllegalDrugUserStatusSourceNever, past_pe)%>%
+dat.comor=delivery_final_v9%>%dplyr::select(IllegalDrugUserStatusSourceNo, IllegalDrugUserStatusSourceYes, IllegalDrugUserStatusSourceNever, past_pe, SeverePE)%>%
   as_tibble()
 
-dat_label=dat.comor%>%
-  select(-mom_id)
+#dat_label=dat.comor%>%
+#  select(-mom_id)
 
-var_label(dat_label) <-list(IllegalDrugUserStatusSourceNo = "No drug", 
+var_label(dat.comor) <-list(IllegalDrugUserStatusSourceNo = "No drug", 
                             IllegalDrugUserStatusSourceYes = "Yes drug",
                             IllegalDrugUserStatusSourceNever = "Never drug",
-                            past_pe = "History of PE")
+                            past_pe = "History of PE",
+                            SeverePE = "severe PE")
                             
 
+sum(dat.comor$IllegalDrugUserStatusSourceNo == "1")
+
 theme_gtsummary_compact()
-dat_label%>%
+dat.comor%>%
   tbl_summary()%>%
   as_gt()%>%
   tab_header(title="Comorbidities")
 
 ```
+
+

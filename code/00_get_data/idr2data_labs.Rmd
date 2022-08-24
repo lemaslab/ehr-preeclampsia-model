@@ -49,8 +49,8 @@ library(readxl)
 
 ```{r, message=FALSE}
 # Windows
- source("~/ehr-preeclampsia-model/code/utils/utils.R")
- source("~/ehr-preeclampsia-model/code/utils/params.R")
+ source("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/code/utils/utils.R")
+ source("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/code/utils/params.R")
  api_token=get_API_token("redcap_ehr2")
 
 # API and URL
@@ -87,7 +87,7 @@ records=mom_list
 # This data pull works: changed the batch size to very small
 
 start_time = Sys.time()
- redcap_data=redcap_read(batch_size=5, 
+ redcap_data=redcap_read(batch_size=2, 
                             redcap_uri=uri, 
                             token=api_token,
                             records=records,

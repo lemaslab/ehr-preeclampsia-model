@@ -44,37 +44,41 @@ library(lubridate)
 
 ```{r, message=FALSE}
 
-# pe_codes: import icd-code information (1:1 structure)
-source("~/ehr-preeclampsia-model/code/utils/params.R")
 
 # delivery_final_v8: import linked delivery data (1:1 structure)
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
-load("~/ehr-preeclampsia-model/data/raw/mom_labs.rda")
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+data_labs=read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_labs.csv")
+
 
 ```
 
 ```{r}
+data_labs$Deidentified_mom_ID<-paste0("mom-",data_labs$Deidentified_mom_ID)
 
-data_labs=df
 #add year of delivery to mom ID
-data_labs$lab_date<-as.Date(data_labs$lab_date)
+data_labs$lab_date<-as.Date(data_labs$`Inferred Specimen Datetime`)
 
 data_labs=data_labs%>%
   mutate(year=lubridate::year(lab_date))
 
-data_labs$part_id<-paste(data_labs$part_id, data_labs$year, sep = "_")
+data_labs$Deidentified_mom_ID<-paste(data_labs$Deidentified_mom_ID, data_labs$year, sep = "_")
+
+
+names(data_labs)[names(data_labs) == "Lab Name"] <- "lab_name"
+names(data_labs)[names(data_labs) == "Lab Result"] <- "lab_result"
+names(data_labs)[names(data_labs) == "Lab Unit"] <- "lab_unit"
 
 #select mom ID, lab date, and lab type/result
 data_labs=data_labs%>%
-  select(part_id, lab_date, lab_name, lab_result, lab_unit)
+  select(Deidentified_mom_ID, lab_date, lab_name, lab_result, lab_unit)
 
 ```
 
 ```{r}
-
+#data_labs=df
 
 delivery_data<-delivery_final_v9
-names(data_labs)[names(data_labs) == "part_id"] <- "mom_id"
+names(data_labs)[names(data_labs) == "Deidentified_mom_ID"] <- "mom_id"
 #[X] CREATININE
 
 # select lab test done around the first diagnosis
@@ -87,7 +91,7 @@ creatinine = data_labs%>%
  # mutate(lab_result = as.numeric(aslab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -105,7 +109,7 @@ ALT = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -124,7 +128,7 @@ AST = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -142,7 +146,7 @@ hematocrit = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -160,7 +164,7 @@ hemoglobin = data_labs%>%
   #mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -178,7 +182,7 @@ mch = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -191,11 +195,11 @@ delivery_final_v9 = delivery_final_v9%>%left_join(mch, by=c("mom_id"))
 # [X] MEAN CORPUSCULAR HEMOGLOBIN CONC 
 # select lab test done around the first diagnosis
 mchc = data_labs%>%
-  filter(grepl("MEAN CORPUSCULAR HEMOGLOBIN CONC", lab_name))%>%
+  filter(grepl("MEAN CORPUSCULAR HEMOGLOBIN CONC|MCHC", lab_name))%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -212,7 +216,7 @@ mcv = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -230,7 +234,7 @@ platelet_count = data_labs%>%
 #  mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -247,7 +251,7 @@ red_count = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -264,7 +268,7 @@ red_distrib = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -281,7 +285,7 @@ white_count = data_labs%>%
  # mutate(lab_result = as.numeric(lab_result))%>%
   select(mom_id, lab_date,lab_result)%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(lab_date <=  perinatal_dx_date+5&lab_date>perinatal_dx_date-5)%>%
+  filter(lab_date <=  perinatal_dx_date+5&lab_date>=perinatal_dx_date)%>%
   group_by(mom_id)%>%
   arrange(lab_date)%>%
   select(mom_id, lab_result)%>%
@@ -295,8 +299,8 @@ delivery_final_v9 = delivery_final_v9%>%left_join(white_count, by=c("mom_id"))
 
 ```{r, message=FALSE}
 # file name
-file_name="delivery_linked_v9.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+file_name="delivery_final_v9.rda"
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
-delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
+delivery_final_v9 %>% save(data_final_v6, file=delivery_final_v9)
 ```

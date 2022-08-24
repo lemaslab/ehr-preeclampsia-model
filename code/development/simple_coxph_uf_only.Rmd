@@ -76,10 +76,15 @@ library(dplyr)
 
 # load data
 
+df=data_final_v7%>%
+  select(-c(ComplicatedDiabetesTypeI, ComplicatedDiabetesAny, UncomplicatedDiabetesAny, History_UncomplicatedDiabetesTypeII, History_ComplicatedDiabetesTypeII, History_ComplicatedDiabetesAny, History_UncomplicatedDiabetesAny, AST, ALT, Hematocrit, Hemoglobin, Mean_Corpuscular_Hgb, Mean_Corpuscular_Vol, Red_Blood_Cell_Count, Mean_Corpuscular_Hgb_Conc, BPSysMean, RespiratoryRateSD, TemperatureMin, TemperatureSD))
+
 # scale all numeric variables except for time to deliver
-for(i in c(1:12)){
+for(i in c(1:3,5:78)){
   df[,i] = scale(df[,i], center = F)
 }
+
+
 
 #split training and testing set
 c_index <- data.frame(train = rep(0,5), test = rep(0,5))

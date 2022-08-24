@@ -1,6 +1,5 @@
 ```{r}
-# eope baseline model validation
-
+# cox-ph EOPE model validation
 library(glmnet)
 library(survival)
 library(dplyr)
@@ -9,8 +8,8 @@ library(gridExtra)
 library(survminer)
 # load UF validation set 
 
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
-
+# load UF validation set 
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
 
 names(delivery_final_v9)[names(delivery_final_v9)== "parity"]<-"EPIS_PARA_COUNT"
 names(delivery_final_v9)[names(delivery_final_v9)== "gravidity"]<-"EPIS_GRAVIDA_COUNT"
@@ -24,19 +23,17 @@ delivery_final_v9=delivery_final_v9%>%
                                   .missing = "1"))
 
 #filter dataset to diag_GA < 34 weeks
-eope=delivery_final_v9%>%
+delivery_final_v9=delivery_final_v9%>%
   filter(!diag_GA>238)
-  
-df = eope
-df = df%>%select(diag_GA, SeverePE, past_pe, EPIS_PARA_COUNT, Coagulopathy, 
-                 PulmonaryCirculationDisorders, RaceName.African.American, time_to_deliver)
+
+# load UF validation set 
+df = delivery_final_v9
 
 
 df$diag_GA<-as.numeric(df$diag_GA)
 df$EPIS_PARA_COUNT<-as.numeric(df$EPIS_PARA_COUNT)
-df$Coagulopathy<-as.numeric(df$Coagulopathy)
-df$PulmonaryCirculationDisorders<-as.numeric(df$PulmonaryCirculationDisorders)
-df$RaceName.African.American<-as.numeric(df$RaceName.African.American)
+df$DiabetesUncomplicated<-as.numeric(df$DiabetesUncomplicated)
+df$ValvularDisease<-as.numeric(df$ValvularDisease)
 df$time_to_deliver<-as.numeric(df$time_to_deliver)
 df$SeverePE<-as.numeric(df$SeverePE)
 df$past_pe<-as.numeric(df$past_pe)
@@ -49,9 +46,13 @@ for(i in c(1:nrow(df))){
   }
 }
 
+df = df%>%dplyr::select(diag_GA, SeverePE, past_pe, PulmonaryCirculationDisorders, EPIS_PARA_COUNT, Coagulopathy, RaceName.African.American,
+                        time_to_deliver)
 
 
-for(i in c(1:7)){
+
+# scale numeric variables
+for(i in c(1,5)){
   df[,i] = scale(df[,i], center = F)
 }
 
@@ -62,7 +63,7 @@ ytest = data.frame(time = ytest, status = rep(1, length(ytest)))
 colnames(ytest)[1] = "time"
 
 #calculate c-index for cox-ph using pre-trained model
-#load("coxph_eope_model0601.RData") 
+#load("coxph_eope_model0621.RData") 
 test_ridge <- predict(train_ridge, xtest ,s=train_ridge$lambda.min,type='link')
 cindex_ridge <- round(Cindex(test_ridge, ytest),3)
 cindex_ridge
@@ -74,14 +75,13 @@ p_result = ggplot(result, aes(x = Predicted, y=True))+geom_point(col = "steelblu
   annotate("text",x=max(result$Predict)-1, y=max(result$True),label = sprintf("c-index:%f", cindex_ridge))
 p_result
 
-
 # plot KM curves
-High_risk = ifelse(result$Predicted>median(result$Predicted), T, F)
-result$high_risk = High_risk
-cox = survfit(Surv(True, rep(1, nrow(result)))~high_risk, data = result)
-eope_km = ggsurvplot(cox, result, conf.int = T, pval = T, pval.method = T, pval.size = 4, pval.coord = c(70, 0.7), pval.method.coord = c(70, 0.8),
-                     font.x = 12,font.y = 12, font.tickslab=12, font.title = 9, font.legend = 12,xlab = NULL)
-eope_km
+# High_risk = ifelse(result$Predicted>median(result$Predicted), T, F)
+# result$high_risk = High_risk
+# cox = survfit(Surv(True, rep(1, nrow(result)))~high_risk, data = result)
+# eope_km = ggsurvplot(cox, result, conf.int = T, pval = T, pval.method = T, pval.size = 4, pval.coord = c(70, 0.7), pval.method.coord = c(70, 0.8),
+#                      font.x = 12,font.y = 12, font.tickslab=12, font.title = 9, font.legend = 12,xlab = NULL)
+# eope_km
 
 result$risk = rep(NA, nrow(result))
 for(i in 1:nrow(result)){
@@ -96,8 +96,37 @@ for(i in 1:nrow(result)){
 
 cox2 = survfit(Surv(True, rep(1, nrow(result)))~risk, data = result)
 eope_km2 = ggsurvplot(cox2, result, conf.int = T, pval = T, pval.method = T, pval.size = 4, pval.coord = c(70, 0.7), pval.method.coord = c(70, 0.8),
-                      font.x = 12,font.y = 12, font.tickslab=12, font.title = 9, font.legend = 12,xlab = NULL)
+                     font.x = 12,font.y = 12, font.tickslab=12, font.title = 9, font.legend = 12,xlab = NULL)
 eope_km2
+
+
+# individual km curves
+df$diag_GA = ifelse(df$diag_GA>median(df$diag_GA), "high", "low")
+df$SeverePE = ifelse(df$SeverePE == 1, "Y", "N")
+df$EPIS_PARA_COUNT = ifelse(df$EPIS_PARA_COUNT == 0, "Nulliparous", "Parous")
+df$past_pe = ifelse(df$past_pe == 1, "Y", "N")
+df$PulmonaryCirculationDisorders = ifelse(df$PulmonaryCirculationDisorders == 1, "Y", "N")
+df$Coagulopathy = ifelse(df$Coagulopathy == 1, "Y", "N")
+df$RaceName.African.American = ifelse(df$RaceName.African.American == 1, "Y", "N")
+
+kmcurve = function(group, name, time){
+  df2 = data.frame(group = group, time_to_deliver = time)
+  surv = survfit(Surv(time_to_deliver, rep(1, nrow(df2)))~group, data = df2, conf.type = "log-log")
+  assign("surv",surv, envir = .GlobalEnv)
+  assign("df2",df2, envir = .GlobalEnv)
+  p = ggsurvplot(surv, data =df2, conf.int = T,title = name, pval = T, pval.method = T, pval.size = 3, pval.coord = c(80, 0.7), pval.method.coord = c(80, 0.9),
+                 font.x = 9,font.y = 9, font.tickslab=9, font.title = 9, font.legend = 8,xlab = NULL)
+  return(p$plot)
+}
+colnames(df) = c("Diagnosis GA", "Severe PE", "PE in prior pregnancy",  "Pulmonary Circulation Disorder","Parity", "Coagulopathy",
+                 "African American",  "Time to deliver")
+p = list()
+for(i in c(1:(ncol(df)-1))){
+  p[[i]]=kmcurve(df[,i], colnames(df)[i], df$`Time to deliver`)
+}
+
+d =grid.arrange(grobs=p, ncol = 4)
+
 
 # build coxph full model
 # x_train = as.matrix(df%>%dplyr::select(-time_to_deliver))
@@ -111,7 +140,5 @@ eope_km2
 # train_theta = predict(train_ridge, x_train, s=train_ridge$lambda.min,type='link')
 # cindex_ridge_train = Cindex(train_theta, y_train)
 # cindex_ridge_train
-# save(train_ridge,file = "eope_baseline0531.RData")
-
-
+# save(train_ridge,file = "coxph_eope_model0620.RData")
 ```

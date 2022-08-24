@@ -1,0 +1,130 @@
+```{r}
+library(survival)
+library(ncvreg)
+#library(CoxBoost)
+library(glmnet)
+#library(randomForestSRC)
+library(Hmisc)
+library(pec)
+library(prodlim)
+#library(ggplot2)
+
+c_index <- data.frame(ridge = rep(0,10), ridge_train = rep(0,10), 
+                      coxnnet_adam = rep(0,10), coxnnet_train = rep(0,10))
+model = ""
+for (i in 0:9)
+{
+  #model = "_low_cor"
+  j = i+1
+  x_train_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/x_train%s%d.csv",model, i), header = TRUE)
+  x_test_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/x_test%s%d.csv",model, i), header = TRUE)
+  ytime_train_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ytime_train%s%d.csv", model,i), header = TRUE)
+  ytime_test_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ytime_test%s%d.csv", model,i), header = TRUE)
+  ystatus_train_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ystatus_train%s%d.csv", model,i), header = TRUE)
+  ystatus_test_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ystatus_test%s%d.csv", model,i), header = TRUE)
+  
+  x_train <- as.matrix(x_train_1)
+  x_test <- as.matrix(x_test_1)
+  y_train_1 <- data.frame(time=ytime_train_1$x, status=ystatus_train_1$x)
+  y_train <- as.matrix(y_train_1)
+  ytime_train <- as.matrix(ytime_train_1$x)
+  ystatus_train <- as.matrix(ystatus_train_1)
+  y_test_1 <- data.frame(time=ytime_test_1$x, status=ystatus_test_1$x)
+  y_test <- as.matrix(y_test_1)
+  ytime_test <- as.matrix(ytime_test_1$x)
+  ystatus_test <- as.matrix(ystatus_test_1)
+  traindata2 <- data.frame(status=ystatus_train_1$x, time=ytime_train_1$x)
+  traindata <- cbind(traindata2, x_train_1)
+  testdata2 <- data.frame(status=ystatus_test_1$x, time=ytime_test_1$x)
+  testdata <- cbind(testdata2, x_test_1)
+  
+  ytime_train <- as.matrix(ytime_train_1$x)
+  ystatus_train <- as.matrix(ystatus_train_1)
+  y_train_1 = data.frame(time = ytime_train_1$x, status = ystatus_train_1$x)
+  y_train = as.matrix(y_train_1)
+  
+  #cox-ph with ridge, LASSO and MCP
+  #ridge
+  time3 <- proc.time()
+  set.seed(2)
+  #train_ridge <-cv.glmnet(x_train, y_train, nfolds = 5, family = "cox", alpha = 0, lambda = 10^(seq(-3,3,1)))
+  train_ridge <-cv.glmnet(x_train, y_train, nfolds = 10, family = "cox", alpha = 0)
+  test_ridge <- predict(train_ridge, x_test,s=train_ridge$lambda.min,type='link')
+  train_theta = predict(train_ridge, x_train, s=train_ridge$lambda.min,type='link')
+  #print(test_ridge)
+  # time4 <- proc.time()
+  # basesurv_ridge <- basesurv(ytime_test, ystatus_test, test_ridge)
+  # p_ridge <- exp(exp(test_ridge) %*% -t(basesurv_ridge$cumulative_base_hazard))
+  # p_ridge_r <- cbind(rep(1, nrow(testdata)), p_ridge)
+  
+  #running time
+  # runtimeridge <- time4 - time3
+  # running_time$ridge[j] <- runtimeridge[3]
+  
+  #c-index
+  cindex_ridge <- Cindex(test_ridge, y_test)
+  cindex_ridge_train = Cindex(train_theta, y_train)
+  print(cindex_ridge)
+  c_index$ridge[j] <- cindex_ridge
+  c_index$ridge_train[j] = cindex_ridge_train
+  
+  #c-ipcw
+  #censor probability
+  # cipcw_ridge <- pec::cindex(p_ridge, formula=Surv(time,status) ~ 1, data=testdata, eval.times= sort(unique(testdata$time)), cens.model = "marginal", splitMethod="none")$AppCindex$matrix[length(unique(testdata[testdata$status==1L, ]$time))]
+  # c_ipcw$ridge[j] <- cipcw_ridge
+  # 
+  #b-score
+  # be_ridge<- pec::pec(p_ridge_r, formula=Surv(time,status) ~ 1, data=testdata, exact = TRUE, cens.model = "marginal", splitMethod="none")
+  # b_ridge <- crps(be_ridge,times= max(testdata$time))[2]
+  # b_score$ridge[j] <- b_ridge
+}
+
+
+for (i in 0:9)
+{
+  j = i+1
+  ytime_test_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ytime_test%s%d.csv",model, i), header = TRUE)
+  ystatus_test_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ystatus_test%s%d.csv",model, i), header = TRUE)
+  x_test_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/x_test%s%d.csv", model,i), header = TRUE)
+  ytime_train_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ytime_train%s%d.csv", model,i), header = TRUE)
+  ystatus_train_1 <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/ystatus_train%s%d.csv", model,i), header = TRUE)
+  ytime_test <- as.matrix(ytime_test_1$x)
+  ystatus_test <- as.matrix(ystatus_test_1)
+  y_test_1 <- data.frame(time=ytime_test_1$x, status=ystatus_test_1$x)
+  y_test <- as.matrix(y_test_1)
+  testdata2 <- data.frame(status=ystatus_test_1$x, time=ytime_test_1$x)
+  testdata <- cbind(testdata2, x_test_1)
+  
+  ytime_train <- as.matrix(ytime_train_1$x)
+  ystatus_train <- as.matrix(ystatus_train_1)
+  y_train_1 = data.frame(time = ytime_train_1$x, status = ystatus_train_1$x)
+  y_train = as.matrix(y_train_1)
+  #coxnnet_adam_dropout
+  theta_coxnnet_adam_dropout <- read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/SRTR_theta_hcc_new%d.csv",i), header = FALSE)
+  theta_coxnnet_adam_dropout <- as.matrix(theta_coxnnet_adam_dropout)
+  cindex_coxnnet_adam_dropout <- Cindex(theta_coxnnet_adam_dropout, y_test)
+  c_index$coxnnet_adam[j] <- cindex_coxnnet_adam_dropout
+  
+  theta_train = read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/SRTR_theta_train%d.csv",i), header = FALSE)
+  cindex_train = Cindex(as.matrix(theta_train), y_train)
+  c_index$coxnnet_train[j] = cindex_train
+  # basesurv_adam_dropout <- basesurv(ytime_test, ystatus_test, theta_coxnnet_adam_dropout)
+  # p_adam_dropout <- exp(exp(theta_coxnnet_adam_dropout) %*% -t(basesurv_adam_dropout$cumulative_base_hazard))
+  # p_adam_dropout_r <- cbind(rep(1, nrow(testdata)), p_adam_dropout)
+  # be_adam_dropout <- pec::pec(p_adam_dropout_r, formula=Surv(time,status) ~ 1, data=testdata, exact = TRUE, cens.model = "marginal",
+  #                             splitMethod="none")
+  # b_adam_dropout <- crps(be_adam_dropout,times= max(testdata$time))[2]
+  # b_score$coxnnet_adam[j] <- b_adam_dropout
+  # cipcw_adam_dropout <- pec::cindex(p_adam_dropout, formula=Surv(time,status) ~ 1, data=testdata, 
+  #                                   eval.times= sort(unique(testdata$time)), cens.model = "marginal", 
+  #                                   splitMethod="none")$AppCindex$matrix[length(unique(testdata[testdata$status==1L, ]$time))]
+  # c_ipcw$coxnnet_adam[j] <- cipcw_adam_dropoutdan
+  # 
+  #runtime_adam_dropout <- read.csv(sprintf("/home/dwwang/review/performance/output_adam/running_time%d.csv", i), header = FALSE)
+  #runtime_adam_dropout <- runtime_adam_dropout[5, ]
+  #running_time$coxnnet_adam[j] <- runtime_adam_dropout
+}
+# ggplot(c_index, aes(x =))
+
+```
+

@@ -46,37 +46,39 @@ library(lubridate)
 
 ```{r, message=FALSE}
 
-# pe_codes: import icd-code information (1:1 structure)
-source("~/ehr-preeclampsia-model/code/utils/params.R")
-
 # delivery_final_v8: import linked delivery data (1:1 structure)
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
-load("~/ehr-preeclampsia-model/data/raw/mom_vitals.rda")
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+data_vitals=read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_prenatals.csv")
+
+data_full_vitals=read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/BP_release.csv")
+
+respiratory_rate_release=read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/respiratory_rate_release.csv")
+heart_rate_release=read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/respiratory_rate_release.csv")
 
 ```
 
 ```{r}
-data_vitals=df
+
+data_vitals$Deidentified_mom_ID<-paste0("mom-",data_vitals$Deidentified_mom_ID)
+
+#add year of delivery to mom ID
+data_vitals$prenatal_bp_date<-as.Date(data_vitals$`BP Datetime`)
+names(data_vitals)[names(data_vitals) == "BP"] <- "prenatal_bp"
+
 delivery_data<-delivery_final_v9
 #add year of delivery to mom ID
-data_vitals$prenatal_bp_date<-as.Date(data_vitals$prenatal_bp_date)
 
 data_vitals=data_vitals%>%
   mutate(year=lubridate::year(prenatal_bp_date))
 
-data_vitals$part_id<-paste(data_vitals$part_id, data_vitals$year, sep = "_")
+data_vitals$Deidentified_mom_ID<-paste(data_vitals$Deidentified_mom_ID, data_vitals$year, sep = "_")
 
 #select mom ID, lab date, and lab type/result
 data_vitals=data_vitals%>%
-  select(part_id, prenatal_bp_date, prenatal_bp)
+  select(Deidentified_mom_ID, prenatal_bp_date, prenatal_bp)
 
 #rename part_id to mom_id (for merging later)
-names(data_vitals)[names(data_vitals) == "part_id"] <- "mom_id"
-
-#filter dataset for moms included in final dataset (v9)
-moms_final=delivery_final_v9$mom_id
-data_vitals=data_vitals%>%
-  filter(mom_id %in% moms_final)
+names(data_vitals)[names(data_vitals) == "Deidentified_mom_ID"] <- "mom_id"
 
 #split systolic (first) and diastolic (second) bp values on /
 data_vitals=data_vitals%>%
@@ -86,11 +88,92 @@ data_vitals=data_vitals%>%
 data_vitals$Systolic=as.numeric(data_vitals$Systolic)
 data_vitals$Diastolic=as.numeric(data_vitals$Diastolic)
 
+######### Full vitals
+data_full_vitals$Deidentified_mom_ID<-paste0("mom-",data_full_vitals$Deidentified_mom_ID)
+
+#add year of delivery to mom ID
+data_full_vitals$prenatal_bp_date<-as.Date(data_full_vitals$`BP Datetime`)
+names(data_full_vitals)[names(data_full_vitals) == "BP"] <- "prenatal_bp"
+
+delivery_data<-delivery_final_v9
+#add year of delivery to mom ID
+
+data_full_vitals=data_full_vitals%>%
+  mutate(year=lubridate::year(prenatal_bp_date))
+
+data_full_vitals$Deidentified_mom_ID<-paste(data_full_vitals$Deidentified_mom_ID, data_full_vitals$year, sep = "_")
+
+#data_full_vitals mom ID, lab date, and lab type/result
+data_full_vitals=data_full_vitals%>%
+  select(Deidentified_mom_ID, prenatal_bp_date, prenatal_bp)
+
+#rename part_id to mom_id (for merging later)
+names(data_full_vitals)[names(data_full_vitals) == "Deidentified_mom_ID"] <- "mom_id"
+
+
+#split systolic (first) and diastolic (second) bp values on /
+data_full_vitals=data_full_vitals%>%
+  separate(prenatal_bp, c("Systolic", "Diastolic"))
+
+#make systolic and diastolic numeric values
+data_full_vitals$Systolic=as.numeric(data_full_vitals$Systolic)
+data_full_vitals$Diastolic=as.numeric(data_full_vitals$Diastolic)
+
+data_all_vitals=rbind(data_full_vitals, data_vitals)
+
+
+#filter dataset for moms included in final dataset (v9)
+moms_final=delivery_final_v9$mom_id
+data_all_vitals=data_all_vitals%>%
+  filter(mom_id %in% moms_final)
+
+data_vitals=data_all_vitals
+
+```
+
+```{r}
+respiratory_rate_release$Deidentified_mom_ID<-paste0("mom-",respiratory_rate_release$Deidentified_mom_ID)
+
+names(respiratory_rate_release)[names(respiratory_rate_release) == "Deidentified_mom_ID"] <- "mom_id"
+
+respiratory_rate_release$respiratory_date<-as.Date(respiratory_rate_release$`Respiratory Datetime`)
+
+respiratory_rate_release=respiratory_rate_release%>%
+  mutate(year=lubridate::year(respiratory_date))
+
+respiratory_rate_release$mom_id<-paste(respiratory_rate_release$mom_id, respiratory_rate_release$year, sep = "_")
+
+respiratory_rate_release$`Respiratory Rate`<-as.numeric(respiratory_rate_release$`Respiratory Rate`)
+
+respiratory_data=respiratory_rate_release%>%
+  select(mom_id, respiratory_date, `Respiratory Rate`)
+```
+
+```{r}
+
+heart_rate_release$Deidentified_mom_ID<-paste0("mom-",heart_rate_release$Deidentified_mom_ID)
+
+names(heart_rate_release)[names(heart_rate_release) == "Deidentified_mom_ID"] <- "mom_id"
+
+heart_rate_release$heart_rate_date<-as.Date(heart_rate_release$`Vital Datetime`)
+
+heart_rate_release=heart_rate_release%>%
+  mutate(year=lubridate::year(heart_rate_date))
+
+heart_rate_release$mom_id<-paste(heart_rate_release$mom_id, heart_rate_release$year, sep = "_")
+
+heart_rate_release$`Heart Rate`<-as.numeric(heart_rate_release$`Heart Rate`)
+
+heart_rate_release=heart_rate_release%>%
+  select(mom_id, heart_rate_date, `Heart Rate`)
+```
+
+```{r}
 
 #Calculate mean, min, max, standard dev for diastolic bp
 BPDiaNonInvasive = data_vitals%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date > perinatal_dx_date-5)%>%
+  filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date >= perinatal_dx_date)%>%
   group_by(mom_id)%>%
   summarise(BPDiaMax = max(Diastolic, na.rm = T), 
             BPDiaMin = min(Diastolic, na.rm = T), 
@@ -98,11 +181,10 @@ BPDiaNonInvasive = data_vitals%>%
             BPDiaSD = sd(Diastolic, na.rm = T))
 BPDiaNonInvasive$BPDiaSD[is.na(BPDiaNonInvasive$BPDiaSD)] = 0
 
-
 #Calculate mean, min, max, standard dev for systolic bp
 BPSysNonInvasive = data_vitals%>%
   inner_join(delivery_data,by=c("mom_id"))%>%
-  #filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date > perinatal_dx_date-5)%>%
+  filter(prenatal_bp_date<= perinatal_dx_date+5 & prenatal_bp_date >= perinatal_dx_date)%>%
   group_by(mom_id)%>%
   summarise(BPSysMax = max(Systolic, na.rm = T), 
             BPSysMin = min(Systolic, na.rm = T), 
@@ -111,10 +193,32 @@ BPSysNonInvasive = data_vitals%>%
 BPSysNonInvasive$BPSysSD[is.na(BPSysNonInvasive$BPSysSD)] = 0
 
 
+## Respiratory Rate
+ RespiratoryRate=respiratory_data%>%
+   inner_join(delivery_data,by=c("mom_id"))%>%
+   filter(respiratory_date<= perinatal_dx_date+5 & respiratory_date >= perinatal_dx_date)%>%
+   group_by(mom_id)%>%
+   summarise(RRMax = max(`Respiratory Rate`, na.rm = T), 
+             RRMin = min(`Respiratory Rate`, na.rm = T), 
+             RRMean = mean(`Respiratory Rate` , na.rm = T), 
+             RRSD = sd(`Respiratory Rate`, na.rm = T))
+
+## Heart Rate
+ HeartRate=heart_rate_release%>%
+   inner_join(delivery_data,by=c("mom_id"))%>%
+   filter(heart_rate_date<= perinatal_dx_date+5 & heart_rate_date >= perinatal_dx_date)%>%
+   group_by(mom_id)%>%
+   summarise(HRMax = max(`Heart Rate`, na.rm = T), 
+             HRMin = min(`Heart Rate`, na.rm = T), 
+             HRMean = mean(`Heart Rate` , na.rm = T), 
+             HRSD = sd(`Heart Rate`, na.rm = T))
+
+
+
 delivery_final_v9 = delivery_final_v9%>%left_join(BPDiaNonInvasive)
 delivery_final_v9 = delivery_final_v9%>%left_join(BPSysNonInvasive)
-
-
+delivery_final_v9 = delivery_final_v9%>%left_join(RespiratoryRate)
+delivery_final_v9 = delivery_final_v9%>%left_join(HeartRate)
 
 #remove multgest_dx_date (cannot be run in mice)
 delivery_final_v9=delivery_final_v9%>%
@@ -144,7 +248,7 @@ delivery_final_v9$White_Blood_Cell_Count<-as.numeric(as.character(delivery_final
 #delivery_final_v9<-delivery_final_v9%>%
   #drop_na(AST)
 
-delivery_final_v9=delivery_final_v9[rowSums(is.na(delivery_final_v9[42:61])) <19L,]
+delivery_final_v9=delivery_final_v9[rowSums(is.na(delivery_final_v9[43:70])) <27L,]
 ```
 
 ```{r}
@@ -157,6 +261,7 @@ final_data_v9_mice = mice(delivery_final_v9,m=1)
 delivery_final_v9 = complete(final_data_v9_mice)
 
 ```
+
 
 ```{r, message=FALSE}
 # file name
