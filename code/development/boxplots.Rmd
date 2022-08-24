@@ -75,7 +75,7 @@ write.csv(contrib, 'C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/proce
 #load("data_final_v7.rda")
 library(caret)
 library(dplyr)
-df2 = data_final_v7_Visits
+df2 = data_final_v7_Full
 X_var = which(colnames(df2) != "TimetoDiagnosis")
 x = df2[,X_var]
 y = df2$TimetoDiagnosis
@@ -221,9 +221,9 @@ vif_func<-function(in_frame,thresh=10,trace=T,...){
 
 
              
-data_filtered=data_final_v7_Visits%>%
+data_filtered=data_final_v7_Baseline%>%
   ungroup()%>%
-  select(TimetoDiagnosis, NUMBER_OF_FETUSES, History_UncomplicatedHypertension, PastPE_SecondTrimester, History_UncomplicatedDiabetesTypeI, History_UncomplicatedDiabetesTypeII, UnspecifiedMoodorAnxietyDisorder, EPIS_PARA_COUNT, Mean_MCH_SecondVisit, Mean_MCV_SecondVisit, Mean_MCHC_FirstVisit, BPDiaMean_ThirdVisit, BPDiaMean_SecondVisit, Medication_Benzodiazepine, Medication_Antacids, Medication_NSAIDs) 
+  select(TimetoDiagnosis, NUMBER_OF_FETUSES, History_UncomplicatedHypertension, UnspecifiedMoodorAnxietyDisorder, EPIS_PARA_COUNT, History_UncomplicatedDiabetesTypeII, Depression, History_ComplicatedDiabetesTypeII, AfricanAmerican, EPIS_GRAVIDA_COUNT, PastPE_SecondTrimester) 
 
 vif_func(in_frame=data_filtered,thresh=5,trace=T)
 
@@ -245,9 +245,9 @@ save(data_final_v6C, file = "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/d
 
 ```{r}
 library(survival)
-df=data_final_v7_Baseline%>%
+df=data_final_v7_Full%>%
   ungroup()%>%
-  select(TimetoDiagnosis, Asian)
+  select(TimetoDiagnosis, BPSysSD)
  # select(TimetoDiagnosis, BPDiaMean_ThirdVisit)
 
 fit<-coxph(Surv(TimetoDiagnosis) ~., data=df)

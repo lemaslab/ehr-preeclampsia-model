@@ -3,10 +3,20 @@
 library(dplyr)
 library(readr)
 
-load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/data_timetodiagnosis_v1.rda")
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
 mom_comorbidities_icd10<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
 
 mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
+df=df%>%
+  select(part_id, perinatal_dx_date, perinatal_dx_code, perinatal_dx_descrip, perinatal_dx_type)
+
+names(df)[names(df)=="part_id"]<- "Deidentified_mom_ID"
+names(df)[names(df)=="perinatal_dx_date"]<- "Diagnosis Start Date"
+names(df)[names(df)=="perinatal_dx_code"]<- "Diagnosis Code"
+names(df)[names(df)=="perinatal_dx_descrip"]<- "Diagnosis Description"
+names(df)[names(df)=="perinatal_dx_type"]<- "Diagnosis Type"
+
 
 ```
 
@@ -14,12 +24,12 @@ mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-mo
 ```{r}
 delivery_final_v9$TimetoDiagnosis<-difftime(delivery_final_v9$perinatal_dx_date, delivery_final_v9$pregnancy_start_date, unit="days")
 
-
+delivery_final_v9$TimetoDiagnosis<-gsub("days", "", delivery_final_v9$TimetoDiagnosis)
 ```
 
 ```{r}
 
-mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9)
+mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9, df)
 mom_comorbidities_codes$Deidentified_mom_ID<-paste0("mom-", mom_comorbidities_codes$Deidentified_mom_ID)
 
 mom_comorbidities_codes$`Diagnosis Start Date`<-as.factor(mom_comorbidities_codes$`Diagnosis Start Date`)
@@ -28,17 +38,29 @@ mom_comorbidities_codes$`Diagnosis Start Date`<-as.Date(mom_comorbidities_codes$
 
 names(mom_comorbidities_codes)[names(mom_comorbidities_codes)=="Deidentified_mom_ID"]<- "mom_id"
 
-delivery_final_v9=delivery_final_v9%>%
-  mutate(year=lubridate::year(part_dob))
+df_encounters=mom_comorbidities_codes%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
 
-delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year, sep = "_")
+df_encounters$mom_id<-paste(df_encounters$mom_id, df_encounters$year, sep = "_")
+
+mom_encounters=df_encounters%>%
+  arrange(mom_id)%>%
+  inner_join(delivery_final_v9)%>%
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+140)
+moms_encounters_20weeks=unique(mom_encounters$mom_id)
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(delivery_final_v9$mom_id %in% moms_encounters_20weeks)
+  
+
+
 
 ```
 
 #Depression diagnosis
 ```{r}
 df_depression=mom_comorbidities_codes%>%
-  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "F32|F33"))
+  filter(grepl("F32|F33", mom_comorbidities_codes$`Diagnosis Code`))
 
 #Add year of delivery to PART ID
 df_depression=df_depression%>%
@@ -48,9 +70,11 @@ df_depression$mom_id<-paste(df_depression$mom_id, df_depression$year, sep = "_")
 
 df_depression=df_depression%>%
   inner_join(delivery_final_v9, by = "mom_id")%>%
-  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+140)
 
 moms_depression=unique(df_depression$mom_id)
+
+#352-331-3502
 
 delivery_final_v9$Depression<-ifelse(delivery_final_v9$mom_id %in% moms_depression, "1", "0")
 ```
@@ -58,7 +82,7 @@ delivery_final_v9$Depression<-ifelse(delivery_final_v9$mom_id %in% moms_depressi
 #Sleep apnea diagnosis
 ```{r}
 df_sleepapnea=mom_comorbidities_codes%>%
-  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "G47.3"))
+  filter(grepl("G47.3", mom_comorbidities_codes$`Diagnosis Code`))
 
 #Add year of delivery to PART ID
 df_sleepapnea=df_sleepapnea%>%
@@ -68,7 +92,7 @@ df_sleepapnea$mom_id<-paste(df_sleepapnea$mom_id, df_sleepapnea$year, sep = "_")
 
 df_sleepapnea=df_sleepapnea%>%
   inner_join(delivery_final_v9, by = "mom_id")%>%
-  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+140)
 
 moms_sleepapnea=unique(df_sleepapnea$mom_id)
 
@@ -78,7 +102,7 @@ delivery_final_v9$SleepApnea<-ifelse(delivery_final_v9$mom_id %in% moms_sleepapn
 #Chronic Kidney Disease diagnosis
 ```{r}
 df_kidneydisease=mom_comorbidities_codes%>%
-  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "N18.9"))
+  filter(grepl("N18", mom_comorbidities_codes$`Diagnosis Code`))
 
 #Add year of delivery to PART ID
 df_kidneydisease=df_kidneydisease%>%
@@ -88,17 +112,56 @@ df_kidneydisease$mom_id<-paste(df_kidneydisease$mom_id, df_kidneydisease$year, s
 
 df_kidneydisease=df_kidneydisease%>%
   inner_join(delivery_final_v9, by = "mom_id")%>%
-  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+140)
 
 moms_kidneydisease=unique(df_kidneydisease$mom_id)
 
 delivery_final_v9$KidneyDisease<-ifelse(delivery_final_v9$mom_id %in% moms_kidneydisease, "1", "0")
 ```
 
+#Uncomplicated Diabetes Type II Disease diagnosis
+```{r}
+df_ucompdiabetesII=mom_comorbidities_codes%>%
+  filter(grepl("E11.9", mom_comorbidities_codes$`Diagnosis Code`))
+
+#Add year of delivery to PART ID
+df_ucompdiabetesII=df_ucompdiabetesII%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_ucompdiabetesII$mom_id<-paste(df_ucompdiabetesII$mom_id, df_ucompdiabetesII$year, sep = "_")
+
+df_ucompdiabetesII=df_ucompdiabetesII%>%
+  inner_join(delivery_final_v9, by = "mom_id")
+
+moms_df_ucompdiabetesII=unique(df_ucompdiabetesII$mom_id)
+
+delivery_final_v9$UncomplicatedDiabetesTypeII<-ifelse(delivery_final_v9$mom_id %in% moms_df_ucompdiabetesII, "1", "0")
+```
+
+
+#Uncomplicated Diabetes TypeI Disease diagnosis
+```{r}
+df_ucompdiabetesI=mom_comorbidities_codes%>%
+  filter(grepl("E10.9", mom_comorbidities_codes$`Diagnosis Code`))
+
+#Add year of delivery to PART ID
+df_ucompdiabetesI=df_ucompdiabetesI%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_ucompdiabetesI$mom_id<-paste(df_ucompdiabetesI$mom_id, df_ucompdiabetesI$year, sep = "_")
+
+df_ucompdiabetesI=df_ucompdiabetesI%>%
+  inner_join(delivery_final_v9, by = "mom_id")
+
+moms_df_ucompdiabetesI=unique(df_ucompdiabetesI$mom_id)
+
+delivery_final_v9$UncomplicatedDiabetesTypeI<-ifelse(delivery_final_v9$mom_id %in% moms_df_ucompdiabetesI, "1", "0")
+```
+
 #Unspecified Mood Or Anxiety Disorder diagnosis
 ```{r}
 df_mood=mom_comorbidities_codes%>%
-  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "F39|F41|F34|F06"))
+  filter(grepl("Mood|mood|Anxiety|anxiety", mom_comorbidities_codes$`Diagnosis Description`))
 
 #Add year of delivery to PART ID
 df_mood=df_mood%>%
@@ -108,12 +171,113 @@ df_mood$mom_id<-paste(df_mood$mom_id, df_mood$year, sep = "_")
 
 df_mood=df_mood%>%
   inner_join(delivery_final_v9, by = "mom_id")%>%
-  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+140)
 
 moms_mood=unique(df_mood$mom_id)
 
 delivery_final_v9$MoodorAnxietyDisorder<-ifelse(delivery_final_v9$mom_id %in% moms_mood, "1", "0")
 ```
+
+#Kidney Infection
+```{r}
+df_kidneyinfection=mom_comorbidities_codes%>%
+  filter(grepl("O23.41", mom_comorbidities_codes$`Diagnosis Code`))
+
+#Add year of delivery to PART ID
+df_kidneyinfection=df_kidneyinfection%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_kidneyinfection$mom_id<-paste(df_kidneyinfection$mom_id, df_kidneyinfection$year, sep = "_")
+
+df_kidneyinfection=df_kidneyinfection%>%
+  inner_join(delivery_final_v9, by = "mom_id")
+
+df_kidneyinfection_moms=unique(df_kidneyinfection$mom_id)
+
+delivery_final_v9$KidneyInfection<-ifelse(delivery_final_v9$mom_id %in% df_kidneyinfection_moms, "1", "0")
+```
+
+#Uncomplicated Hypertension
+```{r}
+df_uncomplicatedhypertension=mom_comorbidities_codes%>%
+  filter(grepl("I15.9|I15.8", mom_comorbidities_codes$`Diagnosis Code`))
+
+#Add year of delivery to PART ID
+df_uncomplicatedhypertension=df_uncomplicatedhypertension%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_uncomplicatedhypertension$mom_id<-paste(df_uncomplicatedhypertension$mom_id, df_uncomplicatedhypertension$year, sep = "_")
+
+df_uncomplicatedhypertension=df_uncomplicatedhypertension%>%
+  inner_join(delivery_final_v9, by = "mom_id")
+
+df_uncomplicatedhypertension_moms=unique(df_uncomplicatedhypertension$mom_id)
+
+delivery_final_v9$UncomplicatedHypertension<-ifelse(delivery_final_v9$mom_id %in% df_uncomplicatedhypertension_moms, "1", "0")
+```
+#Past PE Second Trimester   
+```{r}
+delivery_final_v9=delivery_final_v9%>%
+  mutate(delivery_final_v9, mom_id=sapply(strsplit(delivery_final_v9$mom_id, split="_", fixed=TRUE), function(x) (x[1])))
+
+PastPE_SecondTrimester=delivery_final_v9%>%
+  filter(duplicated(delivery_final_v9$mom_id))
+
+PastPE_SecondTrimester_moms=unique(PastPE_SecondTrimester$mom_id)
+
+data_pastpe=delivery_final_v9%>%
+  filter(delivery_final_v9$mom_id %in% PastPE_SecondTrimester_moms)%>%
+  filter(past_pe == "0")%>%
+  filter(grepl("second trimester", perinatal_dx_descrip))
+
+past_pe_moms<-unique(data_pastpe$mom_id)
+
+delivery_final_v9$PastPE_SecondTrimester<-ifelse(delivery_final_v9$mom_id %in% past_pe_moms, "1", "0")
+
+delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year, sep = "_")
+
+```
+
+#BMI Over 35
+```{r}
+df_bmi=mom_comorbidities_codes%>%
+  filter(grepl("Z68.35|Z68.36|Z68.37|Z68.38|Z68.39|Z68.40|Z68.41|Z68.42|Z68.43|Z68.44|Z68.45", mom_comorbidities_codes$`Diagnosis Code`))
+
+#Add year of delivery to PART ID
+df_bmi=df_bmi%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_bmi$mom_id<-paste(df_bmi$mom_id, df_bmi$year, sep = "_")
+
+df_bmi=df_bmi%>%
+  inner_join(delivery_final_v9, by = "mom_id")
+
+df_bmi_moms=unique(df_bmi$mom_id)
+
+delivery_final_v9$BMIOver35<-ifelse(delivery_final_v9$mom_id %in% df_bmi_moms, "1", "0")
+
+```
+
+#Systemic Lupus Erythematosus
+```{r}
+df_lupus=mom_comorbidities_codes%>%
+  filter(grepl("M32", mom_comorbidities_codes$`Diagnosis Code`))
+
+#Add year of delivery to PART ID
+df_lupus=df_lupus%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_lupus$mom_id<-paste(df_lupus$mom_id, df_lupus$year, sep = "_")
+
+df_lupus=df_lupus%>%
+  inner_join(delivery_final_v9, by = "mom_id")
+
+df_lupus_moms=unique(df_lupus$mom_id)
+
+delivery_final_v9$SystemicLupusErythematosus<-ifelse(delivery_final_v9$mom_id %in% df_lupus_moms, "1", "0")
+
+```
+
 
 ```{r}
 
@@ -133,16 +297,48 @@ delivery_final_v9$multiple_gestation[is.na(delivery_final_v9$multiple_gestation)
 
 names(delivery_final_v9)[names(delivery_final_v9)=="multiple_gestation"]<- "NUMBER_OF_FETUSES"
 
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(TimetoDiagnosis > 140)
+
+delivery_final_v9$gravidity<-as.numeric(delivery_final_v9$gravidity)
+delivery_final_v9$parity<-as.numeric(delivery_final_v9$parity)
+delivery_final_v9$NUMBER_OF_FETUSES<-as.numeric(delivery_final_v9$NUMBER_OF_FETUSES)
+#scale numeric variables
+num_var = c("gravidity", "parity", "NUMBER_OF_FETUSES")
+for(i in c(1:ncol(delivery_final_v9))){
+  if(colnames(delivery_final_v9)[i]%in%num_var){
+    delivery_final_v9[,i] = scale(delivery_final_v9[,i], center = F)
+  }
+}
+
+#log-transform all skewed numeric variables
+for(i in c(1:ncol(delivery_final_v9))){
+  if(colnames(delivery_final_v9)[i]%in%num_var){
+    delivery_final_v9[,i] = log(delivery_final_v9[,i]+1)
+  }
+}
+
+uf_baseline=delivery_final_v9%>%
+  ungroup()%>%
+  select(NUMBER_OF_FETUSES, UncomplicatedHypertension, UncomplicatedDiabetesTypeII, UncomplicatedDiabetesTypeII, KidneyDisease, PastPE_SecondTrimester, BMIOver35, SleepApnea, Depression, MoodorAnxietyDisorder, parity, SystemicLupusErythematosus, TimetoDiagnosis, RaceName.African.American)
+
 ```
 
 ```{r}
 
 timetodiagnosis_v1=delivery_final_v9
 # file name
-file_name="timetodiagnosis_v1"
+file_name="timetodiagnosis_v1.rda"
 data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 timetodiagnosis_v1 %>% save(timetodiagnosis_v1, file=data_export_path)
+
+# file name
+file_name="uf_baseline.rda"
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+uf_baseline %>% save(uf_baseline, file=data_export_path)
 
 
 ```
