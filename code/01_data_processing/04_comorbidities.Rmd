@@ -183,7 +183,7 @@ delivery_final_v9$DiabetesComplicated<-ifelse(delivery_final_v9$mom_id %in% moms
 ```{r, message=FALSE}
 
 drug_use_yes=mom_comorbidities_codes%>%
-  filter(stringr::str_starts( mom_comorbidities_codes$`Diagnosis Code`, "292|304|305.9"))
+  filter(grepl("292.|304.|305.9|O99.", mom_comorbidities_codes$`Diagnosis Code`))
 
 drug_use_yes_1=drug_use_yes%>%
   filter(!grepl("remission", drug_use_yes$`Diagnosis Description`))
@@ -212,14 +212,14 @@ drug_use_past$Deidentified_mom_ID<-paste(drug_use_past$Deidentified_mom_ID, drug
 
 moms_drug_use_past=unique(drug_use_past$Deidentified_mom_ID)
 
-delivery_final_v9$IllegalDrugUserStatusSourceNo<-ifelse(delivery_final_v9$mom_id %in% moms_drug_use_past, "1", "0")
+delivery_final_v9$IllegalDrugUserStatusSourceNo<-ifelse(delivery_final_v9$mom_id %in% moms_drug_use_past, "0", "1")
 
 ```
 
 #Coagulopathy
 ```{r}
 coagulopathy=mom_comorbidities_codes%>%
-  filter(grepl("286|287.1|287.3287.4|287.5|D68|D69.1|D69.3|D69.4|D69.5|D69.6", mom_comorbidities_codes$`Diagnosis Code`)) 
+  filter(grepl("286|287.1|287.3|287.4|287.5|D68|D69.1|D69.3|D69.4|D69.5|D69.6", mom_comorbidities_codes$`Diagnosis Code`)) 
 
 #Add year of delivery to PART ID
 coagulopathy=coagulopathy%>%
@@ -247,6 +247,23 @@ PulmonaryCirculationDisorders$Deidentified_mom_ID<-paste(PulmonaryCirculationDis
 PulmonaryCirculationDisorders=unique(PulmonaryCirculationDisorders$Deidentified_mom_ID)
 
 delivery_final_v9$PulmonaryCirculationDisorders<-ifelse(delivery_final_v9$mom_id %in% PulmonaryCirculationDisorders, "1", "0")
+
+```
+
+#Valvular Disease
+```{r}
+ValvularDisease=mom_comorbidities_codes%>%
+  filter(grepl("A52.0|105.|106.|107.|108.|Q23.O|Q23.1|Q23.2|Q23.3|Z95.2|Z95.4|I34|I35.|I36.|I37.|I38.|I39.", mom_comorbidities_codes$`Diagnosis Code`)) 
+
+#Add year of delivery to PART ID
+ValvularDisease=ValvularDisease%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`)) 
+
+ValvularDisease$Deidentified_mom_ID<-paste(ValvularDisease$Deidentified_mom_ID, ValvularDisease$year, sep = "_")
+
+ValvularDiseaseMoms=unique(ValvularDisease$Deidentified_mom_ID)
+
+delivery_final_v9$ValvularDisease<-ifelse(delivery_final_v9$mom_id %in% ValvularDiseaseMoms, "1", "0")
 
 ```
 
