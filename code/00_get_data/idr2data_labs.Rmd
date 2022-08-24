@@ -1,0 +1,116 @@
+---
+title: "getData: labs"
+author: "Hailey Ballard"
+date: "04/19/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+##-------------- 
+# **************************************************************************** #
+# ***************                Project Overview              *************** #
+# **************************************************************************** #
+# Author:      Hailey Ballard
+# Date:        April 19, 2022
+# IRB:         IRB protocol IRB201601899  
+#
+# version: R version 4.0.3 (2020-10-10)
+# version: Rstudio version Version 1.3.1073  
+
+# **************************************************************************** #
+# ***************                Description                   *************** #
+# **************************************************************************** #
+# PLAN: Access redcap via API and pull/format/clean data for downstream analysis.
+# Note: vpn must be active
+
+# objective: export all labs from redcap and cache as rda file.  
+
+```
+
+
+```{r, message=FALSE}
+# **************************************************************************** #
+# ***************                Library                       *************** #
+# **************************************************************************** #
+library(keyringr)
+library(tidyverse)
+library(redcapAPI)
+library(REDCapR)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+library(readxl)
+```
+
+
+```{r, message=FALSE}
+# Windows
+ source("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/code/utils/utils.R")
+ source("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/code/utils/params.R")
+ api_token=get_API_token("redcap_ehr2")
+
+# API and URL
+uri='https://redcap.ctsi.ufl.edu/redcap/api/'
+rcon <- redcapConnection(url=uri, token=api_token)
+
+```
+
+```{r, message=FALSE}
+
+# variables: perinatal diagnosis codes
+
+variables=c("part_id", "redcap_event_name", "redcap_repeat_instrument", "redcap_repeat_instance", "lab_date", "lab_name", "lab_result", "lab_unit")
+
+# column types.
+col_types <- readr::cols(
+      part_id  = readr::col_character(),
+      redcap_event_name = readr::col_factor(),
+      redcap_repeat_instrument = readr::col_factor(),
+      redcap_repeat_instance = readr::col_factor(),
+      lab_date = readr::col_character(),
+      lab_name	 = readr::col_factor(),
+      lab_result  = readr::col_factor(),
+      lab_unit = readr::col_factor()
+     )
+
+# participant records
+records=mom_list
+
+```
+
+
+```{r, message=FALSE}
+# This data pull works: changed the batch size to very small
+
+start_time = Sys.time()
+ redcap_data=redcap_read(batch_size=2, 
+                            redcap_uri=uri, 
+                            token=api_token,
+                            records=records,
+                            fields=variables,
+                            col_types=col_types)$data
+end_time = Sys.time()
+end_time - start_time
+
+length(unique(redcap_data$part_id))
+
+df=redcap_data
+
+```
+
+
+```{r, message=FALSE}
+## EXPORT to Sharedrive
+
+# file name
+file_name="mom_labs.rda"
+ data_export_directory=paste0("C:/Users/haile/OneDrive/Documents/GitHub/ehr-preeclampsia-model/data/raw/") 
+#data_export_directory=paste0("V:/FACULTY/DJLEMAS/EHR_Data/project/pe_prediction/")
+data_export_path=paste0(data_export_directory,file_name)
+df %>% save(df, file=data_export_path)
+
+```

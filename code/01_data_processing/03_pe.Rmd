@@ -1,7 +1,7 @@
 ---
-title: "compute and format pe data"
-author: "Dominick Lemas & Hailey Ballard"
-date: "01/08/2022"
+title: "Filter Dataset for PE diagnoses"
+author: "Hailey Ballard"
+date: "01/25/2022"
 output: html_document
 ---
 
@@ -14,8 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # **************************************************************************** #
 # ***************                Project Overview              *************** #
 # **************************************************************************** #
-# Author:      Dominick Lemas
-# Date:        January 08, 2022
+# Author:      Hailey Ballard
+# Date:        January 25, 2022
 # IRB:         IRB protocol IRB201601899  
 #
 # version: R 4.1.2 (2020-10-10)
@@ -25,9 +25,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # ***************                Objective                     *************** #
 # **************************************************************************** #
 
-# (1) compute and format the pe data.
-
-# Citation for ICD9 PE codes: https://www.ncbi.nlm.nih.gov/books/NBK442039/table/sb222.t7/
+# (1) Filter the complete dataset for ONLY individuals who have PE
 
 ```
 
@@ -39,175 +37,149 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(fuzzyjoin)
-
+library(dplyr)
+library(sjmisc)
+library(data.table)
 ```
 
 ```{r, message=FALSE}
 
-# pe_codes: import icd-code information (1:1 structure)
-source("~/ehr-preeclampsia-model/code/utils/params.R")
-
-# df: import perinatal icd-code EHR data (1:n structure)
-load("~/ehr-preeclampsia-model/data/processed/mom_perinatal_raw.rda")
-
-# delivery_final_v1: import linked delivery data (1:1 structure)
 load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v1.rda")
+load("~/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
+mom_race<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/baby_mom_at_birth_with_payer.csv")
 
 ```
 
 ```{r, message=FALSE}
 
-# PREP ICD CODE 1:N DATA
+#add mom race
+mom_race$Deidentified_mom_ID<-paste0("mom-", mom_race$Deidentified_mom_ID)
 
-# ICD outcomes
-code_all=pe_codes$perinatal_dx_code
+mom_race_df=mom_race%>%
+  select(Deidentified_mom_ID, Race_mom)
 
-# EHR data
-ehr_codes=df %>%
-  filter(perinatal_dx_type=="ENCOUNTER")
+names(mom_race_df)[names(mom_race_df) == "Deidentified_mom_ID"] <- "mom_id"
 
-# create logic: 1= match %in% outcomes, 0= no match  
-ehr_codes2 = ehr_codes %>%
-  mutate(ehr_logic=if_else(perinatal_dx_code %in% code_all, 1, 0)) 
+delivery_final_v1=merge(delivery_final_v1, mom_race_df, by="mom_id")
 
-# Subset to multiple EHR
-ehr_subset= ehr_codes2 %>%
-  filter(ehr_logic==1) %>%
-  select(-ehr_logic)
+delivery_final_v1$RaceName.African.American<-ifelse(delivery_final_v1$Race_mom == "BLACK", "1", "0")
 
-# IDs
-mom_unique=unique(ehr_subset$mom_id)
+
 
 ```
 
 
-```{r, message=FALSE}
+```{r}
+#remove any duplicated baby IDs
+delivery_final_v9=delivery_final_v1[!duplicated(delivery_final_v1$baby_id), ]
+#filter codes for PE
+df_filtered=df%>%
+  filter(grepl("pre-eclampsia|Pre-eclampsia", perinatal_dx_descrip))
 
-# PREP the DELIVERY 1:1 Data
 
-# rename data
-data_final=delivery_final_v1 %>%
-  select(mom_id,part_dob,gest_start_date,baby_gest_age_raw,weeks,days) %>%
-  mutate(ehr_logic=if_else(mom_id %in% mom_unique, 1, 0)) %>%
-  filter(ehr_logic==1) %>%
-  group_by(mom_id,part_dob) %>% slice(1) %>%
-  select(-ehr_logic)
+#select ID and PE diagnosis
+df_filtered=df_filtered%>%
+  select(part_id, perinatal_dx_date, perinatal_dx_descrip)
 
+#Add year of PE diagnosis to PART ID
+df_filtered=df_filtered%>%
+  mutate(year=lubridate::year(perinatal_dx_date))
+
+df_filtered$part_id<-paste(df_filtered$part_id, df_filtered$year, sep = "_")
+
+df_filtered=df_filtered%>%
+  group_by(part_id)%>%
+  arrange(part_id)%>%
+  slice(1L)%>%
+  select(-year)
+
+#Add year of delivery to PART ID
+delivery_final_v9=delivery_final_v9%>%
+  mutate(year=lubridate::year(part_dob))
+
+delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year, sep = "_")
+
+df_filtered=df_filtered%>%
+  rename(mom_id = part_id)
+
+df_filtered=df_filtered%>%
+  group_by(mom_id)%>%
+  arrange(mom_id)%>%
+  slice(1L)
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(mom_id %in% df_filtered$mom_id)%>%
+  #select(-year)%>%
+  group_by(mom_id)%>%
+  arrange(mom_id)%>%
+  slice(1L)
+
+df_filtered=df_filtered%>%
+  filter(mom_id %in% delivery_final_v9$mom_id)
+
+
+delivery_final_v9<-merge(delivery_final_v9, df_filtered, by="mom_id")
+
+#calculate time between delivery and first PE diagnosis
+for(x in delivery_final_v9$mom_id){
+  delivery_final_v9$time_to_deliver=paste(difftime(delivery_final_v9$part_dob, delivery_final_v9$perinatal_dx_date, units="days"))
+}
+
+#delivery_final_v9=delivery_final_v9%>%
+ # filter(between(delivery_final_v9$time_to_deliver, 0, 150))
+#
+delivery_final_v9=delivery_final_v9%>%
+  mutate(delivery_final_v9, mom_id=sapply(strsplit(delivery_final_v9$mom_id, split="_", fixed=TRUE), function(x) (x[1])))
+
+#delivery_final_v9=delivery_final_v9%>%
+#  filter(delivery_final_v9$prenatal_pe_logic == "preeclampsia")
+
+delivery_final_v9=delivery_final_v9%>%
+  group_by(mom_id)
+
+delivery_final_v9$past_pe<-ifelse(!(duplicated(delivery_final_v9$mom_id)), "0", "1")
+
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver >= 0, ]
+
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 177, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 153, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 156, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 162, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 166, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 167, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 169, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 181, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 184, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 188, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 192, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 197, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 205, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 209, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 212, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 216, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 222, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 224, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 306, ]
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$time_to_deliver != 324, ]
+
+
+delivery_final_v9=delivery_final_v9%>%
+  subset(part_dob>"2015-10-01")
+
+#Diag_GA
+delivery_final_v9$diag_GA<-as.numeric(delivery_final_v9$perinatal_dx_date - delivery_final_v9$pregnancy_start_date)
+
+delivery_final_v9<-delivery_final_v9[delivery_final_v9$diag_GA >=140, ]
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(!grepl("puerperium|Puerperium", perinatal_dx_descrip))
 ```
 
 ```{r, message=FALSE}
-
-# START LOOP (RUN on UFRC)
-chunks=length(unique(mom_unique)) 
-pages <- list()
-
-for(i in 1:chunks){
-  
-  # subset data
-  codes_subset=ehr_subset %>%
-    filter(mom_id==mom_unique[i]) %>%
-    select(mom_id,everything())
-  
-  delivery_subset=data_final %>%
-    filter(mom_id==mom_unique[i]) %>%
-    select(mom_id,everything())
-  
-  fuzzy=fuzzy_left_join(codes_subset,delivery_subset,
-                        by = c("mom_id" = "mom_id",
-                               "perinatal_dx_date" = "part_dob",
-                               "perinatal_dx_date"="gest_start_date"),
-                        match_fun = list(`==`, `<=`, `>=`)) %>%
-    select(-mom_id.y)
-  pages[[i]] <- fuzzy
-} # END LOOP
-
-data_ready=bind_rows(pages) %>%
-  rename("mom_id"="mom_id.x")
-
-pe_dx_dob_v0=data_ready
-
 # file name
-file_name="pe_codes_dob_v0.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
+file_name="delivery_linked_v9.rda"
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
-pe_dx_dob_v0 %>% save(pe_dx_dob_v0, file=data_export_path)
-
-# create Rscript using knitr::purl()
-
+delivery_final_v9 %>% save(delivery_final_v9, file=data_export_path)
 ```
-
-```{r, message=FALSE}
-# load UFRC linked data
-
-# 1077 unique moms
-load("~/ehr-preeclampsia-model/data/processed/pe_dx_dob_v0.rda")
-
-# remove dates past DOB and select the most recent code/visit before DOB. 
-dat=pe_dx_dob_v0 %>%
-  drop_na() %>% 
-        group_by(mom_id,part_dob) %>% 
-        filter(perinatal_dx_date == max(perinatal_dx_date))
-
-# link multiple data
-ehr_select=pe_codes %>%
-  select(perinatal_dx_code,perinatal_dx_category,perinatal_dx_subcategory,perinatal_dx_gestation)
-
-# merge ICD code annotations into ICD data
-code_annotate=left_join(
-  dat,
-  ehr_select,
-  by = "perinatal_dx_code",
-  copy = FALSE,
-  suffix = c(".x", ".y"),
-  keep = FALSE)
-
-col_name=names(code_annotate) %>% 
-    str_replace_all("perinatal", "pe")
-
-colnames(code_annotate)<-col_name
-
-code_final=code_annotate
-
-```
-
-```{r, message=FALSE}
-
-# ANY PRENATAL PRE_ECLAMPSIA CODE
-
-# MERGE pe data into delivery
-
-# delivery data
-load("~/ehr-preeclampsia-model/data/processed/delivery_linked_v1.rda")
-del_final=delivery_final_v1 
-
-# code-annotations: any-pe status
-pe_any=code_final %>% ungroup() %>%
-  select(mom_id,part_dob,gest_start_date,pe_dx_date,pe_dx_category)
-  
-
-# merge ICD code annotations into ICD data
-merge_final=left_join(
-  del_final,
-  pe_any,
-  by = c("mom_id","part_dob"),
-  copy = FALSE,
-  suffix = c(".x", ".y"),
-  keep = FALSE) %>%
-  select(-gest_start_date.y) %>%
-  rename("gest_start_date"="gest_start_date.x")
-
-delivery_final_v2=merge_final %>%
-  select(-pe_dx_date) %>%
-  rename("prenatal_pe_logic"="pe_dx_category")
-
-# EXPORT DATA
-
-# file name
-file_name="delivery_linked_v2.rda"
-data_export_directory=paste0("~/ehr-preeclampsia-model/data/processed/") 
-data_export_path=paste0(data_export_directory,file_name)
-delivery_final_v2 %>% save(delivery_final_v2, file=data_export_path)
-
-```
-
 

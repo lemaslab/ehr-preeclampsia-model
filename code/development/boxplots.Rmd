@@ -1,0 +1,270 @@
+```{r}
+library(dplyr)
+library(corrplot)
+
+corrplot(cor(data_final_v7), method="shade", type="upper", tl.cex=0.25)
+
+
+top_ten=data_final_v7%>%
+  select(4,56:78)
+
+corrplot(cor(top_ten), method="shade", type="upper")
+
+```
+
+```{r}
+coxph=c_index$ridge
+
+coxph_train=c_index$ridge_train
+
+coxnnet=c_index$coxnnet_adam
+
+coxnnet_train=c_index$coxnnet_train
+
+
+#ggplot boxplot
+library(ggplot2)
+library(reshape2)
+data_mod <- melt(c_index, id.vars='ridge', 
+                  measure.vars=c('ridge_train', 'ridge', 'coxnnet_train', 'coxnnet_adam'))
+  
+# creating a plot
+p <- ggplot(data_mod) +
+geom_boxplot(aes(x=ridge, y=value, color=variable))
+
+p
+```
+
+```{r}
+#MICE
+data_final_v6C =do.call(data.frame,lapply(data_final_v6C, function(x) replace(x, is.infinite(x),NA)))
+data_final_v6C = mice(data_final_v6C,m=1)
+data_final_v6C = complete(data_final_v6C)
+
+file_name="data_final_v6C.rda"
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+data_final_v6C %>% save(data_final_v6C, file=data_export_path)
+
+data_final_v6C=data_final_v6C%>%
+  mutate_all(funs(as.numeric(as.character(.))))
+```
+
+```{r}
+library(factoextra)
+data=data_final_v7%>%
+  select(56:96)
+
+res.pca<-prcomp(data, scale=TRUE)
+
+eig.val<-get_eigenvalue(res.pca)
+eig.val
+
+pca.var=get_pca_var(res.pca)
+pca.var
+
+contrib = pca.var$contrib
+contrib
+
+write.csv(contrib, 'C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/Time to Diagnosis/pca_results.csv', row.names = FALSE)
+
+```
+
+```{r}
+
+#load("data_final_v7.rda")
+library(caret)
+library(dplyr)
+df2 = data_final_v7_Visits
+X_var = which(colnames(df2) != "TimetoDiagnosis")
+x = df2[,X_var]
+y = df2$TimetoDiagnosis
+control <- rfeControl(functions=rfFuncs, method="cv", number=10)
+rf_results <- rfe(x,y,
+                  sizes=c(5:25, 30, 35, 40), 
+                  rfeControl=control)
+#save(rf_results, file = "rf_results.RData")
+print(rf_results)
+# list the chosen features
+predictors(rf_results)
+# plot the results
+plot(rf_results, type=c("g", "o"))
+
+
+# Feature selection using backward elimination
+
+df2=data_final_v6C%>%
+  select(-c(DeID_PatientID, pregnancy_start, DeID_DOB))
+library(survival)
+surv1 = coxph(Surv(TimetoDiagnosis, rep(1, nrow(df2)))~., df2)
+
+library(MASS)
+surv_step = stepAIC(surv1, direction = "backward", trace = F)
+summary(surv_step)
+
+
+```
+
+```{r}
+library(mlbench)
+library(elasticnet)
+library(caret)
+library(dplyr)
+data_select=data_final_v7_Baseline
+
+
+#Initialize cross validation and train LASSO
+cv_5 <- trainControl(method="cv", number=5)
+lasso <- train(TimetoDiagnosis ~., data=data_select, method='lasso',  trControl=cv_5)
+
+#Filter out the variables whose coefficients have squeezed to 0
+drop <-predict.enet(lasso$finalModel, type='coefficients', s=lasso$bestTune$fraction, mode='fraction')$coefficients  
+drop<-drop[drop==0]%>%names()
+data_filtered<- data_select%>%select(-drop) 
+
+
+
+```
+
+```{r}
+data=data_final_v7%>%select(EPIS_PARA_COUNT, NUMBER_OF_FETUSES, TimetoDiagnosis, UncomplicatedHypertension, ComplicatedDiabetesAny, SystemicLupusErythematosus, Depression, AfricanAmerican, History_UncomplicatedHypertension, History_ComplicatedDiabetesTypeII, History_ChronicKidneyDisease, History_MoodOrAnxietyDisorder, History_ComplicatedDiabetesAny, History_UncomplicatedDiabetesAny, ALT_first_tri, ALT_second_tri, ProteinCreatinine_first_tri, ProteinCreatinine_second_trimester, Hematocrit_first_tri, Red_Cell_Distribution_Width_second_tri, AbnormalRCDWCountFirstTri, AbnormalRBCCountSecondTri, AbnormalMCVCountFirstTri, AbnormalMCHCountSecondTri, AbnormalHematocritCountFirstTri, AbnormalHematocritCountSecondTri, AbnormalCreatinineCountFirstTri, AbnormalCreatinineCountSecondTri, AbnormalPlateletCount, AbnormalALTCountFirstTri, BPDiaMean_FirstTri, BPSysMax_FirstTri, BPSysMean_FirstTri, RespiratoryRateMean_FirstTri, RespiratoryRateSD_FirstTri, HeartRateMax_FirstTri, HeartRateMin_FirstTri, BPDiaMean_SecondTri, TemperatureMax_SecondTri, TemperatureMin_SecondTri, StageIIHypertension_Count, Medication_Benzodiazepine, Medication_Antacids, Medication_CalciumChannelBlockers, MaternalAge)
+
+correlationMatrix<-cor(data)
+highlyCorrelated<-findCorrelation(correlationMatrix, cutoff=0.75)
+print(highlyCorrelated)
+
+
+```
+
+```{r}
+
+library(car)
+library(dplyr)
+data_selected=data_final_v6C
+
+
+model <- lm(TimetoDiagnosis ~ ., data = data_selected)
+
+
+vif_1=vif(model)
+
+print(vif_1)
+
+
+```
+
+```{r}
+vif_func<-function(in_frame,thresh=10,trace=T,...){
+
+  library(fmsb)
+  
+  if(any(!'data.frame' %in% class(in_frame))) in_frame<-data.frame(in_frame)
+  
+  #get initial vif value for all comparisons of variables
+  vif_init<-NULL
+  var_names <- names(in_frame)
+  for(val in var_names){
+      regressors <- var_names[-which(var_names == val)]
+      form <- paste(regressors, collapse = '+')
+      form_in <- formula(paste(val, '~', form))
+      vif_init<-rbind(vif_init, c(val, VIF(lm(form_in, data = in_frame, ...))))
+      }
+  vif_max<-max(as.numeric(vif_init[,2]), na.rm = TRUE)
+
+  if(vif_max < thresh){
+    if(trace==T){ #print output of each iteration
+        prmatrix(vif_init,collab=c('var','vif'),rowlab=rep('',nrow(vif_init)),quote=F)
+        cat('\n')
+        cat(paste('All variables have VIF < ', thresh,', max VIF ',round(vif_max,2), sep=''),'\n\n')
+        }
+    return(var_names)
+    }
+  else{
+
+    in_dat<-in_frame
+
+    #backwards selection of explanatory variables, stops when all VIF values are below 'thresh'
+    while(vif_max >= thresh){
+      
+      vif_vals<-NULL
+      var_names <- names(in_dat)
+        
+      for(val in var_names){
+        regressors <- var_names[-which(var_names == val)]
+        form <- paste(regressors, collapse = '+')
+        form_in <- formula(paste(val, '~', form))
+        vif_add<-VIF(lm(form_in, data = in_dat, ...))
+        vif_vals<-rbind(vif_vals,c(val,vif_add))
+        }
+      max_row<-which(vif_vals[,2] == max(as.numeric(vif_vals[,2]), na.rm = TRUE))[1]
+
+      vif_max<-as.numeric(vif_vals[max_row,2])
+
+      if(vif_max<thresh) break
+      
+      if(trace==T){ #print output of each iteration
+        prmatrix(vif_vals,collab=c('var','vif'),rowlab=rep('',nrow(vif_vals)),quote=F)
+        cat('\n')
+        cat('removed: ',vif_vals[max_row,1],vif_max,'\n\n')
+        flush.console()
+        }
+
+      in_dat<-in_dat[,!names(in_dat) %in% vif_vals[max_row,1]]
+
+      }
+
+    return(names(in_dat))
+    
+    }
+  
+  }
+
+
+             
+data_filtered=data_final_v7_Visits%>%
+  ungroup()%>%
+  select(TimetoDiagnosis, NUMBER_OF_FETUSES, History_UncomplicatedHypertension, PastPE_SecondTrimester, History_UncomplicatedDiabetesTypeI, History_UncomplicatedDiabetesTypeII, UnspecifiedMoodorAnxietyDisorder, EPIS_PARA_COUNT, Mean_MCH_SecondVisit, Mean_MCV_SecondVisit, Mean_MCHC_FirstVisit, BPDiaMean_ThirdVisit, BPDiaMean_SecondVisit, Medication_Benzodiazepine, Medication_Antacids, Medication_NSAIDs) 
+
+vif_func(in_frame=data_filtered,thresh=5,trace=T)
+
+```
+
+```{r}
+data_final_v6C=data_final_v6C%>%
+  select(-Medication_Montelukast)
+
+
+data_final_v6C =do.call(data.frame,lapply(data_final_v6C, function(x) replace(x, is.infinite(x),NA)))
+data_final_v6_mice = mice(data_final_v6C,m=1)
+data_final_v6C = complete(data_final_v6_mice)
+
+data_final_v6C=data_final_v6C
+save(data_final_v6C, file = "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/data_final_v6C.rda")
+
+```
+
+```{r}
+library(survival)
+df=data_final_v7_Baseline%>%
+  ungroup()%>%
+  select(TimetoDiagnosis, Asian)
+ # select(TimetoDiagnosis, BPDiaMean_ThirdVisit)
+
+fit<-coxph(Surv(TimetoDiagnosis) ~., data=df)
+
+summary(fit)
+
+```
+
+```{r}
+library(caret)
+library(mlbench)
+library(randomForest)
+
+data_control=data_final_v
+
+fit_rf=randomForest(TimetoDiagnosis~., data=data_control)
+
+im<-data.frame(importance(fit_rf))
+
+```

@@ -1,0 +1,99 @@
+```{r}
+library(glmnet)
+library(survival)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(survminer)
+
+names(delivery_final_v9)[names(delivery_final_v9)== "parity"]<-"EPIS_PARA_COUNT"
+names(delivery_final_v9)[names(delivery_final_v9)== "gravidity"]<-"EPIS_GRAVIDA_COUNT"
+names(delivery_final_v9)[names(delivery_final_v9)== "mom_age_delivery"]<-"age"
+delivery_final_v9=delivery_final_v9%>%
+  mutate(NUMBER_OF_FETUSES=recode(multgest_dx_subcategory,
+                                  twin="2", 
+                                  triplet="3",
+                                  multiple="3",
+                                  quadruplet="3",
+                                  .missing = "1"))
+# load UF validation set 
+df = delivery_final_v9
+df = df%>%select(diag_GA, SeverePE, past_pe, EPIS_PARA_COUNT, DiabetesUncomplicated, ValvularDisease, age, time_to_deliver)
+
+df$diag_GA<-as.numeric(df$diag_GA)
+df$EPIS_PARA_COUNT<-as.numeric(df$EPIS_PARA_COUNT)
+df$DiabetesUncomplicated<-as.numeric(df$DiabetesUncomplicated)
+df$ValvularDisease<-as.numeric(df$ValvularDisease)
+df$time_to_deliver<-as.numeric(df$time_to_deliver)
+df$SeverePE<-as.numeric(df$SeverePE)
+df$past_pe<-as.numeric(df$past_pe)
+
+xtest = data.matrix(df%>%dplyr::select(-time_to_deliver))
+ytest = df%>%dplyr::select(time_to_deliver)
+ytest = data.frame(time = ytest, status = rep(1, length(ytest)))
+colnames(ytest)[1] = "time"
+
+
+d
+#calculate c-index for cox-ph using pre-trained model
+#load("coxph_baseline_0610.RData")
+test_ridge <- predict(train_ridge, xtest ,s=train_ridge$lambda.min,type='link')
+cindex_ridge <- round(Cindex(test_ridge, ytest),3)
+cindex_ridge
+
+# plot the predicted vs true value scatterplot
+result = data.frame(test_ridge, ytest[,1])
+colnames(result) = c("Predicted", "True")
+p_result = ggplot(result, aes(x = Predicted, y=True))+geom_point(col = "steelblue")+
+  annotate("text",x=max(result$Predict)-1, y=max(result$True),label = sprintf("c-index:%f", cindex_ridge))
+p_result
+
+result$risk = c()
+# plot KM curves
+for(i in 1:nrow(result)){
+  if(result$Predicted[i]>quantile(result$Predicted, probs = 0.75)){
+    result$risk[i] = "High"
+  }else if(result$Predicted[i]<quantile(result$Predicted, probs=0.25)){
+    result$risk[i] = "Low"
+  }else{
+    result$risk[i] = "Middle"
+  }
+}
+
+cox_full = survfit(Surv(True, rep(1, nrow(result)))~risk, data = result)
+summary(cox_full)
+full_km = ggsurvplot(cox_full,result, conf.int = T, pval = T, pval.method = T, pval.size = 4, pval.coord = c(100, 0.7), pval.method.coord = c(100, 0.8),
+                     font.x = 12,font.y = 12, font.tickslab=12, font.title = 9, font.legend = 12,xlab = NULL)
+full_km
+
+
+# individual km curves
+
+for(i in c(1,7)){
+  df[,i] = ifelse(df[,i]>median(df[,i]), "high", "low")
+}
+df$SeverePE = ifelse(df$SeverePE == 1, "Y", "N")
+df$EPIS_PARA_COUNT = ifelse(df$EPIS_PARA_COUNT == 0, "Nulliparous", "Parous")
+df$past_pe = ifelse(df$past_pe == 1, "Y", "N")
+df$DiabetesUncomplicated = ifelse(df$DiabetesUncomplicated == 1, "Y", "N")
+df$ValvularDisease = ifelse(df$ValvularDisease == 1, "Y", "N")
+
+kmcurve = function(group, name, time){
+  df2 = data.frame(group = group, time_to_deliver = time)
+  surv = survfit(Surv(time_to_deliver, rep(1, nrow(df2)))~group, data = df2, conf.type = "log-log")
+  assign("surv",surv, envir = .GlobalEnv)
+  assign("df2",df2, envir = .GlobalEnv)
+  p = ggsurvplot(surv, data =df2, conf.int = T,title = name, pval = T, pval.method = T, pval.size = 3, pval.coord = c(80, 0.7), pval.method.coord = c(80, 0.9),
+                 font.x = 9,font.y = 9, font.tickslab=9, font.title = 9, font.legend = 8,xlab = NULL)
+  return(p$plot)
+}
+colnames(df) = c("Diagnosis GA", "Severe PE", "PE in prior pregnancy", "Parity", "Diabetes Uncomplicated",
+                           "Valvular Disease", "Age", "Time to deliver")
+p = list()
+for(i in c(1:(ncol(df)-1))){
+  p[[i]]=kmcurve(df[,i], colnames(df)[i], df$`Time to deliver`)
+}
+
+d =grid.arrange(grobs=p, ncol = 4)
+
+```

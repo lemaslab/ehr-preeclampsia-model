@@ -1,0 +1,148 @@
+```{r}
+# UF Baseline Time to Diagnosis 
+library(dplyr)
+library(readr)
+
+load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/data_timetodiagnosis_v1.rda")
+mom_comorbidities_icd10<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
+
+mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
+
+```
+
+#Time to Diagnosis
+```{r}
+delivery_final_v9$TimetoDiagnosis<-difftime(delivery_final_v9$perinatal_dx_date, delivery_final_v9$pregnancy_start_date, unit="days")
+
+
+```
+
+```{r}
+
+mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9)
+mom_comorbidities_codes$Deidentified_mom_ID<-paste0("mom-", mom_comorbidities_codes$Deidentified_mom_ID)
+
+mom_comorbidities_codes$`Diagnosis Start Date`<-as.factor(mom_comorbidities_codes$`Diagnosis Start Date`)
+mom_comorbidities_codes$`Diagnosis Start Date`<-strptime(mom_comorbidities_codes$`Diagnosis Start Date`, format="%m/%d/%y")
+mom_comorbidities_codes$`Diagnosis Start Date`<-as.Date(mom_comorbidities_codes$`Diagnosis Start Date`, format="%m-%d-%y")
+
+names(mom_comorbidities_codes)[names(mom_comorbidities_codes)=="Deidentified_mom_ID"]<- "mom_id"
+
+delivery_final_v9=delivery_final_v9%>%
+  mutate(year=lubridate::year(part_dob))
+
+delivery_final_v9$mom_id<-paste(delivery_final_v9$mom_id, delivery_final_v9$year, sep = "_")
+
+```
+
+#Depression diagnosis
+```{r}
+df_depression=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "F32|F33"))
+
+#Add year of delivery to PART ID
+df_depression=df_depression%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_depression$mom_id<-paste(df_depression$mom_id, df_depression$year, sep = "_")
+
+df_depression=df_depression%>%
+  inner_join(delivery_final_v9, by = "mom_id")%>%
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+
+moms_depression=unique(df_depression$mom_id)
+
+delivery_final_v9$Depression<-ifelse(delivery_final_v9$mom_id %in% moms_depression, "1", "0")
+```
+
+#Sleep apnea diagnosis
+```{r}
+df_sleepapnea=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "G47.3"))
+
+#Add year of delivery to PART ID
+df_sleepapnea=df_sleepapnea%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_sleepapnea$mom_id<-paste(df_sleepapnea$mom_id, df_sleepapnea$year, sep = "_")
+
+df_sleepapnea=df_sleepapnea%>%
+  inner_join(delivery_final_v9, by = "mom_id")%>%
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+
+moms_sleepapnea=unique(df_sleepapnea$mom_id)
+
+delivery_final_v9$SleepApnea<-ifelse(delivery_final_v9$mom_id %in% moms_sleepapnea, "1", "0")
+```
+
+#Chronic Kidney Disease diagnosis
+```{r}
+df_kidneydisease=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "N18.9"))
+
+#Add year of delivery to PART ID
+df_kidneydisease=df_kidneydisease%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_kidneydisease$mom_id<-paste(df_kidneydisease$mom_id, df_kidneydisease$year, sep = "_")
+
+df_kidneydisease=df_kidneydisease%>%
+  inner_join(delivery_final_v9, by = "mom_id")%>%
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+
+moms_kidneydisease=unique(df_kidneydisease$mom_id)
+
+delivery_final_v9$KidneyDisease<-ifelse(delivery_final_v9$mom_id %in% moms_kidneydisease, "1", "0")
+```
+
+#Unspecified Mood Or Anxiety Disorder diagnosis
+```{r}
+df_mood=mom_comorbidities_codes%>%
+  filter(stringr::str_starts(mom_comorbidities_codes$`Diagnosis Code`, "F39|F41|F34|F06"))
+
+#Add year of delivery to PART ID
+df_mood=df_mood%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
+
+df_mood$mom_id<-paste(df_mood$mom_id, df_mood$year, sep = "_")
+
+df_mood=df_mood%>%
+  inner_join(delivery_final_v9, by = "mom_id")%>%
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+210)
+
+moms_mood=unique(df_mood$mom_id)
+
+delivery_final_v9$MoodorAnxietyDisorder<-ifelse(delivery_final_v9$mom_id %in% moms_mood, "1", "0")
+```
+
+```{r}
+
+delivery_final_v9=delivery_final_v9%>%
+  filter(!is.na(weeks)&!is.na(gravidity)&!is.na(parity))
+
+#add column for multiple gestation
+delivery_final_v9=delivery_final_v9%>%
+  mutate(multiple_gestation=case_when(
+    multgest_dx_subcategory == "twin" ~ "2",
+    multgest_dx_subcategory == "triplet" ~ "3",
+    multgest_dx_subcategory == "quadruplet" ~ "4",
+    multgest_dx_subcategory == "multiple" ~ "1",
+  ))
+
+delivery_final_v9$multiple_gestation[is.na(delivery_final_v9$multiple_gestation)] <- 1
+
+names(delivery_final_v9)[names(delivery_final_v9)=="multiple_gestation"]<- "NUMBER_OF_FETUSES"
+
+```
+
+```{r}
+
+timetodiagnosis_v1=delivery_final_v9
+# file name
+file_name="timetodiagnosis_v1"
+data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+timetodiagnosis_v1 %>% save(timetodiagnosis_v1, file=data_export_path)
+
+
+```

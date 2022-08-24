@@ -1,0 +1,43 @@
+```{r}
+library(dplyr)
+
+x = read.csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/x_test0.csv")
+
+x <- mutate_all(x, function(x) as.numeric(as.character(x)))
+process_feature = function(num){
+  feature = read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/SRTR_features3%d.csv", num), header = F)
+#  feature = as.data.frame(t(feature))
+  colnames(feature) = c("perm_score")
+  sign = read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/SRTR_sign%d.csv", num), header = F)
+  feature$sign = sign$V1
+  return(feature)
+}
+
+feat0 = process_feature(0)
+feat1 = process_feature(1)
+feat2 = process_feature(2)
+feat3 = process_feature(3)
+feat4 = process_feature(4)
+feat5 = process_feature(5)
+feat6 = process_feature(6)
+feat7 = process_feature(7)
+feat8 = process_feature(8)
+feat9 = process_feature(9)
+
+
+feat_avg = data.frame(matrix(NA, nrow(feat0), 3))
+colnames(feat_avg) = c("name", "perm_score", "sign")
+feat_avg$name = colnames(x)
+feat_avg$perm_score = rowMeans(cbind(feat0$perm_score,feat1$perm_score,feat2$perm_score,feat3$perm_score,feat4$perm_score,
+                                     feat5$perm_score,feat6$perm_score,feat7$perm_score,feat8$perm_score,feat9$perm_score
+                                     ))
+#feat_avg$partial_cindex = rowMeans(cbind(feat0$partial_cindex, #feat1$partial_cindex,feat2$partial_cindex,feat3$partial_cindex,feat4$partial_cindex,
+ #                                        feat5$partial_cindex, feat6$partial_cindex,feat6$partial_cindex,feat8$partial_cindex,feat9$partial_cindex))
+feat_avg$sign = rowMeans(cbind(feat0$sign,feat1$sign,feat2$sign,feat3$sign
+                               ,feat4$sign,feat5$sign,feat6$sign,feat7$sign,feat8$sign,feat9$sign
+                              ),na.rm=T)
+feat_avg$sign = ifelse(feat_avg$sign>0, "Positive", "Negative")
+
+feat_avg = feat_avg%>%arrange(-perm_score)
+#write.csv(feat_avg,file = "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/Time to Diagnosis/baseline_important_features.csv", row.names=F)
+```

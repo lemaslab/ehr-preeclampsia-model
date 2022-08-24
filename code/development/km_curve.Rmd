@@ -1,0 +1,43 @@
+```{r}
+# KM curves for Florida Validation set
+# Xiaotong Yang
+
+library(survival)
+library(survminer)
+library(gridExtra)
+
+time_to_deliver<-as.numeric(delivery_final_v9$time_to_deliver)
+
+names(delivery_final_v9)[names(delivery_final_v9) == "weeks"] <- "diag_GA"
+
+delivery_final_v9 = delivery_final_v9%>%filter(!is.na(diag_GA))
+
+# Function to plot KM curve of given feature 
+# A numeric feature need to be converted into two groups first: "high" above median or "low" below median. 
+# name is the name of the feature 
+# time takes the time_to_deliver variable from data
+kmcurve = function(group, name, time){
+  df = data.frame(group = group, time_to_deliver = time)
+  surv = survfit(Surv(time_to_deliver, rep(1, nrow(df)))~group, data = df, conf.type = "log-log")
+  assign("surv",surv, envir = .GlobalEnv)
+  assign("df",df, envir = .GlobalEnv)
+  p = ggsurvplot(surv, data =df, conf.int = T,title = name, pval = T, pval.method = T, pval.size = 3, pval.coord = c(100, 0.7), pval.method.coord = c(100, 0.9),
+                 font.x = 9,font.y = 9, font.tickslab=9, font.title = 9, font.legend = 8,xlab = NULL)
+  return(p$plot)
+}
+
+diag_GA<-as.numeric(delivery_final_v9$diag_GA)
+SeverePE<-delivery_final_v9$SeverePE
+past_pe<-delivery_final_v9$past_pe
+
+# convert diagnosis gestational age
+# weeks should not be scaled in this step!!
+diag_GA = ifelse(diag_GA>median(diag_GA),"high", "low")
+p_diag_GA = kmcurve(group = diag_GA, name = "diag_GA", time = time_to_deliver)
+p_SeverePE = kmcurve(SeverePE, "SeverePE", time_to_deliver)
+p_past_pe = kmcurve(past_pe, "past_pe", time_to_deliver)
+
+grid.arrange(p_diag_GA, p_SeverePE, p_past_pe, ncol = 3)
+
+
+```
