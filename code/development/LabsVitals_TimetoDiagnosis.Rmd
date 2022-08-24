@@ -1,0 +1,229 @@
+```{r}
+
+# UF Baseline Time to Diagnosis 
+library(dplyr)
+library(readr)
+library(tidyverse)
+library(readxl)
+library(fuzzyjoin)
+library(sjmisc)
+library(data.table)
+library(lubridate)
+library(mice)
+
+
+load("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/processed/timetodiagnosis_v1.rda")
+
+```
+
+#Labs 
+```{r}
+labs=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_labs.csv")
+
+labs$Deidentified_mom_ID<-paste0("mom-", labs$Deidentified_mom_ID)
+
+names(labs)[names(labs)=="Inferred Specimen Datetime"]<- "lab_date"
+names(labs)[names(labs)=="Deidentified_mom_ID"]<- "mom_id"
+names(labs)[names(labs)=="Lab Name"]<- "lab_name"
+names(labs)[names(labs)=="Lab Result"]<- "value"
+
+labs$lab_date<-as.factor(labs$lab_date)
+labs$lab_date2<-strftime(labs$lab_date, format="%Y-%m-%d")
+labs$lab_date2<-as.Date(labs$lab_date2)
+timetodiagnosis_v1$pregnancy_start_date<-as.Date(timetodiagnosis_v1$pregnancy_start_date)
+
+labs=labs%>%
+  mutate(year=lubridate::year(lab_date2))
+
+labs$mom_id<-paste(labs$mom_id, labs$year, sep = "_")
+```
+
+#Minimum Hematocrit
+```{r}
+
+Hematocrit= labs%>%
+  filter(lab_name == "HEMATOCRIT")%>%
+  mutate(value = as.numeric(value))%>%
+  select(mom_id, lab_date2,value)%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(lab_date2 <= pregnancy_start_date+140)%>%
+  group_by(mom_id)%>%
+  summarise(Min_Hematocrit=min(value, na.rm=TRUE))%>%
+  select(mom_id,Min_Hematocrit)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(Hematocrit,  by=c("mom_id"))
+
+```
+
+#Maximum WBCC
+```{r}
+WBCC= labs%>%
+  filter(lab_name == "WHITE BLOOD CELL COUNT")%>%
+  mutate(value = as.numeric(value))%>%
+  select(mom_id, lab_date2,value)%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(lab_date2 <= pregnancy_start_date+140)%>%
+  group_by(mom_id)%>%
+  summarise(Max_WBCC=max(value, na.rm=TRUE))%>%
+  select(mom_id,Max_WBCC)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(WBCC,  by=c("mom_id"))
+
+```
+
+#Minimum MCHC
+```{r}
+MCHC= labs%>%
+  filter(grepl("MCHC", lab_name))%>%
+  mutate(value = as.numeric(value))%>%
+  select(mom_id, lab_date2,value)%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(lab_date2 <= pregnancy_start_date+140)%>%
+  group_by(mom_id)%>%
+  summarise(Min_MCHC=min(value, na.rm=TRUE))%>%
+  select(mom_id,Min_MCHC)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(MCHC,  by=c("mom_id"))
+
+```
+
+
+###### VITALS
+
+```{r}
+
+data_vitals=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_prenatals.csv")
+
+data_full_vitals=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/BP_release.csv")
+
+```
+
+```{r}
+
+data_vitals$Deidentified_mom_ID<-paste0("mom-",data_vitals$Deidentified_mom_ID)
+
+#add year of delivery to mom ID
+data_vitals$prenatal_bp_date<-as.Date(data_vitals$`BP Datetime`)
+names(data_vitals)[names(data_vitals) == "BP"] <- "prenatal_bp"
+
+delivery_data<-timetodiagnosis_v1
+#add year of delivery to mom ID
+
+data_vitals=data_vitals%>%
+  mutate(year=lubridate::year(prenatal_bp_date))
+
+data_vitals$Deidentified_mom_ID<-paste(data_vitals$Deidentified_mom_ID, data_vitals$year, sep = "_")
+
+#select mom ID, lab date, and lab type/result
+data_vitals=data_vitals%>%
+  select(Deidentified_mom_ID, prenatal_bp_date, prenatal_bp)
+
+#rename part_id to mom_id (for merging later)
+names(data_vitals)[names(data_vitals) == "Deidentified_mom_ID"] <- "mom_id"
+
+#split systolic (first) and diastolic (second) bp values on /
+data_vitals=data_vitals%>%
+  separate(prenatal_bp, c("Systolic", "Diastolic"))
+
+#make systolic and diastolic numeric values
+data_vitals$Systolic=as.numeric(data_vitals$Systolic)
+data_vitals$Diastolic=as.numeric(data_vitals$Diastolic)
+
+######### Full vitals
+data_full_vitals$Deidentified_mom_ID<-paste0("mom-",data_full_vitals$Deidentified_mom_ID)
+
+#add year of delivery to mom ID
+data_full_vitals$prenatal_bp_date<-as.Date(data_full_vitals$`BP Datetime`)
+names(data_full_vitals)[names(data_full_vitals) == "BP"] <- "prenatal_bp"
+
+delivery_data<-timetodiagnosis_v1
+#add year of delivery to mom ID
+
+data_full_vitals=data_full_vitals%>%
+  mutate(year=lubridate::year(prenatal_bp_date))
+
+data_full_vitals$Deidentified_mom_ID<-paste(data_full_vitals$Deidentified_mom_ID, data_full_vitals$year, sep = "_")
+
+#data_full_vitals mom ID, lab date, and lab type/result
+data_full_vitals=data_full_vitals%>%
+  select(Deidentified_mom_ID, prenatal_bp_date, prenatal_bp)
+
+#rename part_id to mom_id (for merging later)
+names(data_full_vitals)[names(data_full_vitals) == "Deidentified_mom_ID"] <- "mom_id"
+
+
+#split systolic (first) and diastolic (second) bp values on /
+data_full_vitals=data_full_vitals%>%
+  separate(prenatal_bp, c("Systolic", "Diastolic"))
+
+#make systolic and diastolic numeric values
+data_full_vitals$Systolic=as.numeric(data_full_vitals$Systolic)
+data_full_vitals$Diastolic=as.numeric(data_full_vitals$Diastolic)
+
+data_all_vitals=rbind(data_full_vitals, data_vitals)
+
+```
+
+#Diastolic BP
+```{r}
+#[X] Diastolic BP
+BPDiaNonInvasive = data_all_vitals%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(prenatal_bp_date<= pregnancy_start_date+140)%>%
+  group_by(mom_id)%>%
+  summarise(Mean_DiastolicBP = mean(Diastolic, na.rm = T))%>%
+  select(mom_id, Mean_DiastolicBP)
+          
+#Join Data
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(BPDiaNonInvasive)
+
+```
+
+#Systolic BP
+```{r}
+#[X] Systolic BP
+BPSysNonInvasive = data_all_vitals%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(prenatal_bp_date<= pregnancy_start_date+140)%>%
+  group_by(mom_id)%>%
+  summarise(Mean_SystolicBP = mean(Systolic, na.rm = T))%>%
+  select(mom_id, Mean_SystolicBP)
+          
+#Join Data
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(BPSysNonInvasive)
+
+```
+```{r}
+timetodiagnosis_v1=timetodiagnosis_v1[rowSums(is.na(timetodiagnosis_v1[83:87])) <5L,]
+
+# fill NA with mice imputation
+timetodiagnosis_v1 =do.call(data.frame,lapply(timetodiagnosis_v1, function(x) replace(x, is.infinite(x),NA)))
+timetodiagnosis_v1_mice = mice(timetodiagnosis_v1,m=1)
+timetodiagnosis_v2 = complete(timetodiagnosis_v1_mice)
+```
+
+#Prep Data
+```{r}
+
+num_var=c("Min_Hematocrit", "Max_WBCC", "Min_MCHC", "Mean_DiastolicBP", "Mean_SystolicBP")
+
+for(i in c(1:ncol(timetodiagnosis_v2))){
+  if(colnames(timetodiagnosis_v2)[i]%in%num_var){
+    timetodiagnosis_v2[,i] = scale(timetodiagnosis_v2[,i], center = F)
+  }
+}
+
+#log-transform all skewed numeric variables
+for(i in c(1:ncol(timetodiagnosis_v2))){
+  if(colnames(timetodiagnosis_v2)[i]%in%num_var){
+    timetodiagnosis_v2[,i] = log(timetodiagnosis_v2[,i]+1)
+  }
+}
+```
+
+
+```{r}
+# file name
+file_name="timetodiagnosis_v2.rda"
+data_export_directory=paste0("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/processed/") 
+data_export_path=paste0(data_export_directory,file_name)
+timetodiagnosis_v2 %>% save(timetodiagnosis_v2, file=data_export_path)
+
+```

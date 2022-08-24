@@ -3,19 +3,28 @@
 library(dplyr)
 library(readr)
 
-load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
-mom_comorbidities_icd10<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
+load("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+mom_comorbidities_icd10<-read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
 
-mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
-load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
+mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
+load("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
 df=df%>%
   select(part_id, perinatal_dx_date, perinatal_dx_code, perinatal_dx_descrip, perinatal_dx_type)
+
+maternal_release=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/maternal_release.csv")
 
 names(df)[names(df)=="part_id"]<- "Deidentified_mom_ID"
 names(df)[names(df)=="perinatal_dx_date"]<- "Diagnosis Start Date"
 names(df)[names(df)=="perinatal_dx_code"]<- "Diagnosis Code"
 names(df)[names(df)=="perinatal_dx_descrip"]<- "Diagnosis Description"
 names(df)[names(df)=="perinatal_dx_type"]<- "Diagnosis Type"
+
+#rename maternal release columns
+names(maternal_release)[names(maternal_release)=="part_id"]<- "Deidentified_mom_ID"
+names(maternal_release)[names(maternal_release)=="perinatal_dx_date"]<- "Diagnosis Start Date"
+names(maternal_release)[names(maternal_release)=="perinatal_dx_code"]<- "Diagnosis Code"
+names(maternal_release)[names(maternal_release)=="perinatal_dx_descrip"]<- "Diagnosis Description"
+names(maternal_release)[names(maternal_release)=="perinatal_dx_type"]<- "Diagnosis Type"
 
 
 ```
@@ -29,7 +38,7 @@ delivery_final_v9$TimetoDiagnosis<-gsub("days", "", delivery_final_v9$TimetoDiag
 
 ```{r}
 
-mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9, df)
+mom_comorbidities_codes<-rbind(mom_comorbidities_icd10, mom_comorbidities_icd9, df, maternal_release)
 mom_comorbidities_codes$Deidentified_mom_ID<-paste0("mom-", mom_comorbidities_codes$Deidentified_mom_ID)
 
 mom_comorbidities_codes$`Diagnosis Start Date`<-as.factor(mom_comorbidities_codes$`Diagnosis Start Date`)
@@ -37,22 +46,6 @@ mom_comorbidities_codes$`Diagnosis Start Date`<-strptime(mom_comorbidities_codes
 mom_comorbidities_codes$`Diagnosis Start Date`<-as.Date(mom_comorbidities_codes$`Diagnosis Start Date`, format="%m-%d-%y")
 
 names(mom_comorbidities_codes)[names(mom_comorbidities_codes)=="Deidentified_mom_ID"]<- "mom_id"
-
-df_encounters=mom_comorbidities_codes%>%
-  mutate(year=lubridate::year(`Diagnosis Start Date`))
-
-df_encounters$mom_id<-paste(df_encounters$mom_id, df_encounters$year, sep = "_")
-
-mom_encounters=df_encounters%>%
-  arrange(mom_id)%>%
-  inner_join(delivery_final_v9)%>%
-  filter(`Diagnosis Start Date` <= pregnancy_start_date+140)
-moms_encounters_20weeks=unique(mom_encounters$mom_id)
-
-delivery_final_v9=delivery_final_v9%>%
-  filter(delivery_final_v9$mom_id %in% moms_encounters_20weeks)
-  
-
 
 
 ```
@@ -279,6 +272,7 @@ delivery_final_v9$SystemicLupusErythematosus<-ifelse(delivery_final_v9$mom_id %i
 ```
 
 
+
 ```{r}
 
 delivery_final_v9=delivery_final_v9%>%
@@ -318,27 +312,19 @@ for(i in c(1:ncol(delivery_final_v9))){
     delivery_final_v9[,i] = log(delivery_final_v9[,i]+1)
   }
 }
+timetodiagnosis_v1=delivery_final_v9
 
-uf_baseline=delivery_final_v9%>%
-  ungroup()%>%
-  select(NUMBER_OF_FETUSES, UncomplicatedHypertension, UncomplicatedDiabetesTypeII, UncomplicatedDiabetesTypeII, KidneyDisease, PastPE_SecondTrimester, BMIOver35, SleepApnea, Depression, MoodorAnxietyDisorder, parity, SystemicLupusErythematosus, TimetoDiagnosis, RaceName.African.American)
 
 ```
 
 ```{r}
 
-timetodiagnosis_v1=delivery_final_v9
-# file name
-file_name="timetodiagnosis_v1.rda"
-data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
-data_export_path=paste0(data_export_directory,file_name)
-timetodiagnosis_v1 %>% save(timetodiagnosis_v1, file=data_export_path)
 
 # file name
-file_name="uf_baseline.rda"
-data_export_directory=paste0("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/") 
+file_name="timetodiagnosis_v1.rda"
+data_export_directory=paste0("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
-uf_baseline %>% save(uf_baseline, file=data_export_path)
+timetodiagnosis_v1 %>% save(timetodiagnosis_v1, file=data_export_path)
 
 
 ```
