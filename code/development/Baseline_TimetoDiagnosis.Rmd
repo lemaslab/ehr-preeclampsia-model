@@ -3,15 +3,15 @@
 library(dplyr)
 library(readr)
 
-load("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
-mom_comorbidities_icd10<-read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
+load("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
+mom_comorbidities_icd10<-read_csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD10_release.csv")
 
-mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
-load("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
+mom_comorbidities_icd9<-read_csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/mom_comorbidities_list_ICD9_release.csv")
+load("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
 df=df%>%
   select(part_id, perinatal_dx_date, perinatal_dx_code, perinatal_dx_descrip, perinatal_dx_type)
 
-maternal_release=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/maternal_release.csv")
+maternal_release=read_csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/maternal_release.csv")
 
 names(df)[names(df)=="part_id"]<- "Deidentified_mom_ID"
 names(df)[names(df)=="perinatal_dx_date"]<- "Diagnosis Start Date"
@@ -47,7 +47,21 @@ mom_comorbidities_codes$`Diagnosis Start Date`<-as.Date(mom_comorbidities_codes$
 
 names(mom_comorbidities_codes)[names(mom_comorbidities_codes)=="Deidentified_mom_ID"]<- "mom_id"
 
+mom_codes=mom_comorbidities_codes%>%
+  mutate(year=lubridate::year(`Diagnosis Start Date`))
 
+mom_codes$mom_id<-paste(mom_codes$mom_id, mom_codes$year, sep = "_")
+
+mom_visit2encounters=mom_codes%>%
+  inner_join(delivery_final_v9)%>%
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+85 & `Diagnosis Start Date` <=pregnancy_start_date+112)
+mom_visit2encounters=unique(mom_visit2encounters$mom_id)
+
+
+mom_visit3encounters=mom_codes%>%
+  inner_join(delivery_final_v9)%>%
+  filter(`Diagnosis Start Date` <= pregnancy_start_date+113 & `Diagnosis Start Date` <=pregnancy_start_date+140)
+mom_visit3encounters=unique(mom_visit3encounters$mom_id)
 ```
 
 #Depression diagnosis

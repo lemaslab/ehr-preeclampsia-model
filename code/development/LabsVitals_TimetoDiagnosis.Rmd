@@ -12,13 +12,13 @@ library(lubridate)
 library(mice)
 
 
-load("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/processed/timetodiagnosis_v1.rda")
+load("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/processed/timetodiagnosis_v1.rda")
 
 ```
 
 #Labs 
 ```{r}
-labs=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_labs.csv")
+labs=read_csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/mom_labs.csv")
 
 labs$Deidentified_mom_ID<-paste0("mom-", labs$Deidentified_mom_ID)
 
@@ -89,9 +89,9 @@ timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(MCHC,  by=c("mom_id"))
 
 ```{r}
 
-data_vitals=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/mom_prenatals.csv")
+data_vitals=read_csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/mom_prenatals.csv")
 
-data_full_vitals=read_csv("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/raw/BP_release.csv")
+data_full_vitals=read_csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/BP_release.csv")
 
 ```
 
@@ -190,19 +190,112 @@ BPSysNonInvasive = data_all_vitals%>%
 timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(BPSysNonInvasive)
 
 ```
+
+## Diastolic BP Second Visit
+```{r}
+#[X] Diastolic BP First Visit (0-12 Weeks)
+BPDiaNonInvasive_FirstVisit = data_all_vitals%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(prenatal_bp_date<= pregnancy_start_date+84)%>%
+  group_by(mom_id)%>%
+  summarise(BPDiaMean_FirstVisit = mean(Diastolic, na.rm = T))%>%
+  select(mom_id, BPDiaMean_FirstVisit)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(BPDiaNonInvasive_FirstVisit)
+
+#[X] Diastolic BP Second Visit (12-16 Weeks)
+BPDiaNonInvasive_SecondVisit = data_all_vitals%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(prenatal_bp_date >= pregnancy_start_date+85 & prenatal_bp_date<=pregnancy_start_date+112)%>%
+  group_by(mom_id)%>%
+  summarise(BPDiaMean_SecondVisit = mean(Diastolic, na.rm = T))%>%
+  select(mom_id, BPDiaMean_SecondVisit)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(BPDiaNonInvasive_SecondVisit)
+
+timetodiagnosis_v1$BPDiaMean_SecondVisit[!timetodiagnosis_v1$mom_id %in% mom_visit2encounters] <- "novisit"
+timetodiagnosis_v1=timetodiagnosis_v1%>%
+  mutate(BPDiaMean_SecondVisit = ifelse(is.na(BPDiaMean_SecondVisit), BPDiaMean_FirstVisit, BPDiaMean_SecondVisit))
+timetodiagnosis_v1$BPDiaMean_SecondVisit[timetodiagnosis_v1$BPDiaMean_SecondVisit  == "novisit"] <- NA
+
+#[X] Diastolic BP Third Visit (16-20 Weeks)
+BPDiaNonInvasive_ThirdVisit = data_all_vitals%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(prenatal_bp_date >= pregnancy_start_date+113 & prenatal_bp_date<=pregnancy_start_date+140)%>%
+  group_by(mom_id)%>%
+  summarise(BPDiaMean_ThirdVisit = mean(Diastolic, na.rm = T))%>%
+  select(mom_id, BPDiaMean_ThirdVisit)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(BPDiaNonInvasive_ThirdVisit)
+
+timetodiagnosis_v1$BPDiaMean_ThirdVisit[!timetodiagnosis_v1$mom_id %in% mom_visit3encounters] <- "novisit"
+timetodiagnosis_v1=timetodiagnosis_v1%>%
+  mutate(BPDiaMean_ThirdVisit = ifelse(is.na(BPDiaMean_ThirdVisit), BPDiaMean_SecondVisit, BPDiaMean_ThirdVisit))
+timetodiagnosis_v1$BPDiaMean_ThirdVisit[timetodiagnosis_v1$BPDiaMean_ThirdVisit  == "novisit"] <- NA
+```
+
+
+
+```{r}
+### Mean MCH First and Second Visit
+
+Mean_Corpuscular_Hgb_FirstVisit = labs%>%
+  filter(lab_name == "MCH")%>%
+  mutate(value = as.numeric(value))%>%
+  select(mom_id, lab_date2,value)%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(lab_date2 <= pregnancy_start_date+84)%>%
+  group_by(mom_id)%>%
+  summarise(Mean_MCH_FirstVisit = mean(value, na.rm=TRUE))%>%
+  select(mom_id, Mean_MCH_FirstVisit)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(Mean_Corpuscular_Hgb_FirstVisit,  by=c("mom_id"))
+
+Mean_Corpuscular_Hgb_SecondVisit = labs%>%
+  filter(lab_name == "MCH")%>%
+  mutate(value = as.numeric(value))%>%
+  select(mom_id, lab_date2,value)%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(lab_date2 >= pregnancy_start_date+85 & lab_date2 <=pregnancy_start_date+112)%>%
+  group_by(mom_id)%>%
+  summarise(Mean_MCH_SecondVisit = mean(value, na.rm=TRUE))%>%
+  select(mom_id, Mean_MCH_SecondVisit)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(Mean_Corpuscular_Hgb_SecondVisit,  by=c("mom_id"))
+
+timetodiagnosis_v1$Mean_MCH_SecondVisit[!timetodiagnosis_v1$mom_id %in% mom_visit2encounters] <- "novisit"
+timetodiagnosis_v1=timetodiagnosis_v1%>%
+  mutate(Mean_MCH_SecondVisit = ifelse(is.na(Mean_MCH_SecondVisit), Mean_MCH_FirstVisit, Mean_MCH_SecondVisit))
+timetodiagnosis_v1$Mean_MCH_SecondVisit[timetodiagnosis_v1$Mean_MCH_SecondVisit  == "novisit"] <- NA
+
+# MCHC MCHC Visit
+MCHC_FirstVisit= labs%>%
+  filter(grepl("MCHC", lab_name))%>%
+  mutate(value = as.numeric(value))%>%
+  select(mom_id, lab_date2,value)%>%
+  inner_join(timetodiagnosis_v1,by=c("mom_id"))%>%
+  filter(lab_date2 <= pregnancy_start_date+84)%>%
+  group_by(mom_id)%>%
+  summarise(Mean_MCHC_FirstVisit=mean(value, na.rm=TRUE))%>%
+  select(mom_id,Mean_MCHC_FirstVisit)
+timetodiagnosis_v1 = timetodiagnosis_v1%>%left_join(MCHC_FirstVisit,  by=c("mom_id"))
+
+```
+
 ```{r}
 timetodiagnosis_v1=timetodiagnosis_v1[rowSums(is.na(timetodiagnosis_v1[83:87])) <5L,]
 
+timetodiagnosis_v1=timetodiagnosis_v1%>%
+  select(7,8,22,71:92)
+
+timetodiagnosis_vA=timetodiagnosis_v1%>%
+  select(-Min_Hematocrit, BPDiaMean_FirstVisit)
+
 # fill NA with mice imputation
-timetodiagnosis_v1 =do.call(data.frame,lapply(timetodiagnosis_v1, function(x) replace(x, is.infinite(x),NA)))
-timetodiagnosis_v1_mice = mice(timetodiagnosis_v1,m=1)
-timetodiagnosis_v2 = complete(timetodiagnosis_v1_mice)
+timetodiagnosis_vA =do.call(data.frame,lapply(timetodiagnosis_vA, function(x) replace(x, is.infinite(x),NA)))
+timetodiagnosis_vA_mice = mice(timetodiagnosis_vA,m=1)
+timetodiagnosis_v2 = complete(timetodiagnosis_vA_mice)
 ```
 
 #Prep Data
 ```{r}
 
-num_var=c("Min_Hematocrit", "Max_WBCC", "Min_MCHC", "Mean_DiastolicBP", "Mean_SystolicBP")
+num_var=c("Min_Hematocrit", "Max_WBCC", "Min_MCHC", "Mean_DiastolicBP", "Mean_SystolicBP", "Mean_MCH_FirstVisit", "Mean_MCH_SecondVisit", "BPDiaMean_FirstVisit", "BPDiaMean_SecondVisit", "BPDiaMean_ThirdVisit", "Mean_MCHC_FirstVisit")
 
 for(i in c(1:ncol(timetodiagnosis_v2))){
   if(colnames(timetodiagnosis_v2)[i]%in%num_var){
@@ -222,7 +315,7 @@ for(i in c(1:ncol(timetodiagnosis_v2))){
 ```{r}
 # file name
 file_name="timetodiagnosis_v2.rda"
-data_export_directory=paste0("C:/Users/haile/OneDrive/Michigan/ehr-preeclampsia-model/data/processed/") 
+data_export_directory=paste0("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
 timetodiagnosis_v2 %>% save(timetodiagnosis_v2, file=data_export_path)
 

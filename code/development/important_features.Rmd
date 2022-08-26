@@ -1,14 +1,14 @@
 ```{r}
 library(dplyr)
 
-x = read.csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/x_test0.csv")
+x = read.csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/x_test0.csv")
 
 x <- mutate_all(x, function(x) as.numeric(as.character(x)))
 process_feature = function(num){
-  feature = read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/SRTR_features3%d.csv", num), header = F)
+  feature = read.csv(sprintf("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/SRTR_features3%d.csv", num), header = F)
 #  feature = as.data.frame(t(feature))
   colnames(feature) = c("perm_score")
-  sign = read.csv(sprintf("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/SRTR_sign%d.csv", num), header = F)
+  sign = read.csv(sprintf("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/SRTR_sign%d.csv", num), header = F)
   feature$sign = sign$V1
   return(feature)
 }

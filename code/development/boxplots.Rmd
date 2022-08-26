@@ -220,10 +220,9 @@ vif_func<-function(in_frame,thresh=10,trace=T,...){
   }
 
 
-             
-data_filtered=data_final_v7_Baseline%>%
-  ungroup()%>%
-  select(TimetoDiagnosis, NUMBER_OF_FETUSES, History_UncomplicatedHypertension, UnspecifiedMoodorAnxietyDisorder, EPIS_PARA_COUNT, History_UncomplicatedDiabetesTypeII, Depression, History_ComplicatedDiabetesTypeII, AfricanAmerican, EPIS_GRAVIDA_COUNT, PastPE_SecondTrimester) 
+            
+data_filtered=timetodiagnosis_vA%>%
+  select(-c(Moo))
 
 vif_func(in_frame=data_filtered,thresh=5,trace=T)
 
@@ -245,10 +244,10 @@ save(data_final_v6C, file = "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/d
 
 ```{r}
 library(survival)
-df=data_final_v7_Full%>%
-  ungroup()%>%
-  select(TimetoDiagnosis, BPSysSD)
- # select(TimetoDiagnosis, BPDiaMean_ThirdVisit)
+df=timetodiagnosis_vA%>%
+  select(-MoodorAnxietyDisorder)
+
+df$TimetoDiagnosis<-as.numeric(df$TimetoDiagnosis)
 
 fit<-coxph(Surv(TimetoDiagnosis) ~., data=df)
 
