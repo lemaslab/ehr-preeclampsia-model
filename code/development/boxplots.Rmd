@@ -13,6 +13,7 @@ corrplot(cor(top_ten), method="shade", type="upper")
 ```
 
 ```{r}
+
 coxph=c_index$ridge
 
 coxph_train=c_index$ridge_train
@@ -33,6 +34,22 @@ p <- ggplot(data_mod) +
 geom_boxplot(aes(x=ridge, y=value, color=variable))
 
 p
+
+
+### Boxplot method 2
+names(c_index)[names(c_index)=="ridge"]<- "Cox-ph test"
+names(c_index)[names(c_index)=="ridge_train"]<- "Cox-ph train"
+
+coxph<-c_index[1:2]
+
+boxplot(coxph, xlab="Dataset", ylab="C-index", main="Design Cohort: Aggregate Model Performance", col=c("yellow", "blue"))
+
+
+```
+
+```{r}
+boxplot(coxph~coxph_train, data=c_index)
+
 ```
 
 ```{r}
@@ -220,9 +237,10 @@ vif_func<-function(in_frame,thresh=10,trace=T,...){
   }
 
 
-            
-data_filtered=timetodiagnosis_vA%>%
-  select(-c(Moo))
+             
+data_filtered=data_final_v7_Baseline%>%
+  ungroup()%>%
+  select(TimetoDiagnosis, NUMBER_OF_FETUSES, History_UncomplicatedHypertension, UnspecifiedMoodorAnxietyDisorder, EPIS_PARA_COUNT, History_UncomplicatedDiabetesTypeII, Depression, History_ComplicatedDiabetesTypeII, AfricanAmerican, EPIS_GRAVIDA_COUNT, PastPE_SecondTrimester) 
 
 vif_func(in_frame=data_filtered,thresh=5,trace=T)
 
@@ -244,10 +262,10 @@ save(data_final_v6C, file = "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/d
 
 ```{r}
 library(survival)
-df=timetodiagnosis_vA%>%
-  select(-MoodorAnxietyDisorder)
-
-df$TimetoDiagnosis<-as.numeric(df$TimetoDiagnosis)
+df=data_final_v7_Full%>%
+  ungroup()%>%
+  select(TimetoDiagnosis, BPSysSD)
+ # select(TimetoDiagnosis, BPDiaMean_ThirdVisit)
 
 fit<-coxph(Surv(TimetoDiagnosis) ~., data=df)
 
