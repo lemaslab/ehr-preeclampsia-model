@@ -41,7 +41,10 @@ feat_avg$sign = ifelse(feat_avg$sign>0, "Positive", "Negative")
 feat_avg = feat_avg%>%arrange(-perm_score)
 #write.csv(feat_avg,file = "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/Time to Diagnosis/baseline_important_features.csv", row.names=F)
 
-barplot(feat_avg$perm_score, names.arg=feat_avg$name, cex.axis = 1, cex.names=0.8, col="light blue", ylab="Permutation Score", xlab="Feature")
+feat_avg=feat_avg%>%
+  head(10)
+
+barplot(feat_avg$perm_score, names.arg=feat_avg$name, cex.axis = 1, cex.names=0.5, col="light blue", ylab="Permutation Score", xlab="Feature")
 
 
 ```

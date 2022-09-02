@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 ```{r}
 # KM curves for Florida Validation set
 # Xiaotong Yang
@@ -12,10 +17,14 @@ names(delivery_final_v9)[names(delivery_final_v9) == "weeks"] <- "diag_GA"
 
 delivery_final_v9 = delivery_final_v9%>%filter(!is.na(diag_GA))
 
-testdata<-cbind(ID=1:nrow(testdata), testdata)
-theta_coxnnet_adam_dropout<-cbind(ID=1:nrow(theta_coxnnet_adam_dropout), theta_coxnnet_adam_dropout)
+data_total<-rbind(testdata,traindata)
 
-df=merge(testdata, theta_coxnnet_adam_dropout, by="ID")
+total<-rbind(theta_coxnnet_adam_dropout, theta_train)
+
+data_total<-cbind(ID=1:nrow(data_total), data_total)
+total<-cbind(ID=1:nrow(total), total)
+
+df=merge(data_total, total, by="ID")
 
 
 # Function to plot KM curve of given feature 
@@ -27,8 +36,8 @@ kmcurve = function(group, name, time){
   surv = survfit(Surv(time, rep(1, nrow(df)))~group, data = df, conf.type = "log-log")
   assign("surv",surv, envir = .GlobalEnv)
   assign("df",df, envir = .GlobalEnv)
-  p = ggsurvplot(surv, data =df, conf.int = T,title = name, pval = T, pval.method = T, pval.size = 3, pval.coord = c(100, 0.7), pval.method.coord = c(100, 0.9),
-                 font.x = 9,font.y = 9, font.tickslab=9, font.title = 9, font.legend = 8,xlab = NULL, xlim=c(140,300))
+  p = ggsurvplot(surv, data =df, conf.int = T,title = cindex_ridge, pval = T, pval.method = T, pval.size = 3, pval.coord = c(100, 0.7), pval.method.coord = c(100, 0.9), xscale=7, axes.offset=FALSE,
+                 font.x = 9,font.y = 9, font.tickslab=9, font.title = 9, font.legend = 8,xlab = "Weeks")
   return(p$plot)
 }
 
@@ -39,9 +48,11 @@ past_pe<-delivery_final_v9$past_pe
 theta<-as.numeric(df$V1)
 time<-as.numeric(df$time)
 
-theta<-ifelse(theta>median(theta), "high", "low")
+df$class<-ifelse(df$V1>median(df$V1), "High Risk", "Low Risk")
 
 p_theta=kmcurve(group=theta, name="theta", time=time)
+
+print(p_theta)
 
 # convert diagnosis gestational age
 # weeks should not be scaled in this step!!
@@ -51,6 +62,42 @@ p_SeverePE = kmcurve(SeverePE, "SeverePE", time_to_deliver)
 p_past_pe = kmcurve(past_pe, "past_pe", time_to_deliver)
 
 grid.arrange(p_diag_GA, p_SeverePE, p_past_pe, ncol = 3)
+
+
+```
+
+```{r}
+# Plot differences in top 10 features based off theta (low vs high risk)
+result<-df%>%
+  group_by(class)%>%
+  summarise(Mean_Fetuses=mean(NUMBER_OF_FETUSES),
+            Mean_Depression=mean(Depression),
+            Mean_TypeIDiabetes=mean(History_UncomplicatedDiabetesTypeI),
+            Mean_TypeIIDiabetes=mean(History_UncomplicatedDiabetesTypeII),
+            Mean_Hypertension=mean(History_UncomplicatedHypertension),
+            Mean_Anxiety=mean(UnspecifiedMoodorAnxietyDisorder),
+            Mean_Parity=mean(EPIS_PARA_COUNT),
+            Mean_NSAIDs=mean(Medication_NSAIDs),
+            Mean_Antacids=mean(Medication_Antacids),
+            Mean_Benzodiazepine=mean(Medication_Benzodiazepine) )
+
+data=data.frame(matrix(nrow=20, ncol=3))
+colnames(data)<-c("Class", "Feature", "Mean")
+data$Class<-c("High Risk","High Risk","High Risk","High Risk","High Risk","High Risk","High Risk","High Risk","High Risk","High Risk","Low Risk","Low Risk","Low Risk","Low Risk","Low Risk","Low Risk","Low Risk","Low Risk","Low Risk","Low Risk" )
+data$Feature<-c("Mean_Fetuses", "Mean_Depression", "Mean_TypeIDiabetes", "Mean_TypeIIDiabetes", "Mean_Hypertension", "Mean_Anxiety", "Mean_Parity", "Mean_NSAIDs", "Mean_Antacids", "Mean_Benzodiazepine", "Mean_Fetuses", "Mean_Depression", "Mean_TypeIDiabetes", "Mean_TypeIIDiabetes", "Mean_Hypertension", "Mean_Anxiety", "Mean_Parity", "Mean_NSAIDs", "Mean_Antacids", "Mean_Benzodiazepine")
+data$Mean<-c("0.7000792", "0.3395586", "0.056027165", "0.1052632", "0.3412564", "0.3412564", "0.3870968", "0.4999689", "0.383701188", "0.14261460", "0.098471986", "0.6449909", "0.1103565", "0.001697793", "0", "0.1528014", "0.1199700", "0.008488964", "0.04414261", "0.003395586")
+  
+  
+stat.test<-df%>%
+  t_test(Medication_Benzodiazepine ~ class)%>%
+  add_significance()
+
+stat.test
+
+data_base<-reshape(data, idvar="Feature", timevar="Class", direction="wide" )
+
+ggplot(data, aes(fill=Class, y=Mean, x=Feature))+geom_bar(position="dodge", stat="identity")
+
 
 
 ```

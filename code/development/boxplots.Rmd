@@ -27,7 +27,7 @@ coxnnet_train=c_index$coxnnet_train
 library(ggplot2)
 library(reshape2)
 data_mod <- melt(c_index, id.vars='ridge', 
-                  measure.vars=c('ridge_train', 'ridge', 'coxnnet_train', 'coxnnet_adam'))
+                  measure.vars=c('ridge_train', 'ridge'))
   
 # creating a plot
 p <- ggplot(data_mod) +
@@ -43,6 +43,7 @@ names(c_index)[names(c_index)=="ridge_train"]<- "Cox-ph train"
 coxph<-c_index[1:2]
 
 boxplot(coxph, xlab="Dataset", ylab="C-index", main="Design Cohort: Aggregate Model Performance", col=c("yellow", "blue"))
+
 
 
 ```
@@ -261,10 +262,10 @@ save(data_final_v6C, file = "C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/d
 ```
 
 ```{r}
-library(survival)
+#library(survival)
 df=data_final_v7_Full%>%
   ungroup()%>%
-  select(TimetoDiagnosis, BPSysSD)
+  select(TimetoDiagnosis, Medication_Antacids)
  # select(TimetoDiagnosis, BPDiaMean_ThirdVisit)
 
 fit<-coxph(Surv(TimetoDiagnosis) ~., data=df)
@@ -278,7 +279,7 @@ library(caret)
 library(mlbench)
 library(randomForest)
 
-data_control=data_final_v
+data_control=data_final_v7_Baseline
 
 fit_rf=randomForest(TimetoDiagnosis~., data=data_control)
 

@@ -314,6 +314,13 @@ for(i in c(1:ncol(timetodiagnosis_v2))){
 
 ```{r}
 # file name
+
+timetodiagnosis_v2=timetodiagnosis_v2%>%
+  select(7,8,42,71:87)
+
+timetodiagnosis_v2=timetodiagnosis_v2%>%
+  mutate_all(funs(as.numeric(as.character(.))))
+
 file_name="timetodiagnosis_v2.rda"
 data_export_directory=paste0("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/processed/") 
 data_export_path=paste0(data_export_directory,file_name)
