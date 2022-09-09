@@ -53,8 +53,8 @@ library(lubridate)
 
 # delivery_final_v8: import linked delivery data (1:1 structure)
 load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/processed/delivery_linked_v9.rda")
-baby_mom_at_birth_with_payer=read_csv("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/baby_mom_at_birth_with_payer.csv")
-load("C:/Users/haile/OneDrive/UM/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
+baby_mom_at_birth_with_payer=read_csv("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/baby_mom_at_birth_with_payer.csv")
+load("C:/Users/haile/OneDrive/ehr-preeclampsia-model/data/raw/mom_perinatal_raw.rda")
 
 ##EOPE
 #filter dataset to diag_GA < 34 weeks
@@ -66,7 +66,7 @@ delivery_final_v9=delivery_final_v9%>%
 ```{r}
 #gather list of all baby IDs in final dataset
 
-data_table1=delivery_final_v9
+data_table1=timetodiagnosis_v1
 table1_baby=data_table1$baby_id
 
 ##add mom ID onto deidentified baby ID
@@ -80,16 +80,18 @@ characteristics=baby_mom_at_birth_with_payer%>%
 
 ```{r, message=FALSE}
 #Mean materna age
-mean_ma<-mean(characteristics$`Age at Encounter_mom`, trim=0.3)
-sd_ma<-sd(characteristics$`Age at Encounter_mom`)
+data_final_v7_Full$MaternalAge<-data_final_v7_Full$MaternalAge*365
+
+mean_ma<-mean(data_final_v7_Full$MaternalAge, trim=0.3)
+sd_ma<-sd(data_final_v7_Full$MaternalAge)
 
 #gravidity
-mean_gravidity<-mean(delivery_final_v9$gravidity, trim=0.3)
-sd_gravidity<-sd(delivery_final_v9$gravidity)
+mean_gravidity<-mean(data_table1$gravidity, trim=0.3)
+sd_gravidity<-sd(data_table1$gravidity)
 
 #parity
-mean_parity<-mean(delivery_final_v9$parity, trim=0.3)
-sd_parity<-sd(delivery_final_v9$parity)
+mean_parity<-mean(data_table1$parity, trim=0.3)
+sd_parity<-sd(data_table1$parity)
 
 #Gestational age days
 delivery_final_v9$time_difference=difftime(delivery_final_v9$perinatal_dx_date, delivery_final_v9$pregnancy_start_date)
@@ -102,9 +104,9 @@ sd_gad<-sd(delivery_final_v9$time_difference)
 
 
 #time to deliver
-delivery_final_v9$time_to_deliver<-as.numeric(delivery_final_v9$time_to_deliver)
-mean_ttd<-mean(delivery_final_v9$time_to_deliver, trim=0.3)
-sd_ttd<-sd(delivery_final_v9$time_to_deliver)
+data_table1$TimetoDiagnosis<-as.numeric(data_table1$TimetoDiagnosis)
+mean_ttd<-mean(data_table1$TimetoDiagnosis, trim=0.3)
+sd_ttd<-sd(data_table1$TimetoDiagnosis)
 
 
 ```
