@@ -1,0 +1,160 @@
+```{r}
+#--------------------------
+# PE prediction shiny app 
+# baseline model
+# Xiaotong Yang
+# 06/10/2022
+#--------------------------
+
+library(shiny)
+library(DT)
+library(reticulate)
+library(dplyr)
+library(glmnet)
+library(tibble)
+library(data.table)
+library(ggplot2)
+library(survival)
+library(survminer)
+
+use_python("/usr/bin/python", required=TRUE)
+options(shiny.host = '0.0.0.0')
+options(shiny.port = 8091)
+
+
+
+# Define UI
+ui <- shinyUI(fluidPage(
+  sidebarLayout(
+    fileInput('target_upload', 'Choose file to upload',
+              accept = c(
+                'text/csv',
+                'text/comma-separated-values',
+                '.csv'
+              )),
+    radioButtons("separator","Separator: ",choices = c(";",",",":"), selected=",",inline=TRUE)
+  ),
+
+  mainPanel(
+    column(6, plotOutput("time_theta_plt")),
+    column(6, plotOutput("survival_curve")),
+    #dataTableOutput("theta_table"),
+    textOutput("cindex")
+  )
+))  
+  
+  
+# Define server logic
+server <- shinyServer(function(input, output) {
+  
+  calculate_theta <- reactive({
+    #read in test data
+    inFile <- input$target_upload
+    if (is.null(inFile)){
+      df = read.csv("test.csv")
+    }else{
+      df <- read.csv(inFile$datapath, header = TRUE,sep = input$separator, row.names = NULL)
+    }
+      
+    xtest = data.matrix(df%>%dplyr::select(-TimetoDiagnosis))
+    ytest = df%>%dplyr::select(TimetoDiagnosis)
+    ytest = data.frame(time = ytest, status = rep(1, length(ytest)))
+    colnames(ytest)[1] = "time"
+    
+    #calculate c-index for cox-ph
+    load("coxph_baseline_0930.RData")
+    test_ridge <- predict(train_ridge, xtest,s=train_ridge$lambda.min,type='link')
+    cindex_ridge <- round(Cindex(test_ridge, ytest),3)
+    
+    #import saved cox-nnet model and calculate theta
+    reticulate::source_python("cox_nnet_v2_edited.py")
+    model = loadModel("savedBaselineModel")
+    ##put in your mdodel here ^
+    xtest = r_to_py(xtest)
+    theta = predictNewData(model, xtest)
+
+    # calculate c-index
+    # theta = read.csv("SRTR_theta_hcc_new0.csv", header = F)
+    # theta = theta$V1
+    theta_coxnnet_adam_dropout <- as.matrix(theta)
+    cindex_coxnnet_adam_dropout <- round(Cindex(theta_coxnnet_adam_dropout, ytest),3)
+    
+    return(list(theta, cindex_coxnnet_adam_dropout, ytest, cindex_ridge))
+    
+  })
+  
+  #plot theta vs time scatterplot
+  output$time_theta_plt = renderPlot({
+    result <- calculate_theta()
+    coxnnet_result = data.frame(result[[1]], result[[3]]$time)
+    colnames(coxnnet_result) = c("theta", "time")
+    ggplot(coxnnet_result, aes(x = theta, y = time))+
+      geom_point(col = "steelblue")+
+      labs(y = "Time to deliver(days)", x = "Prognosis Index")
+  })
+  
+  #plot survival curve of high risk vs low risk group
+  runSur <- reactive({
+    result <- calculate_theta()
+    theta = result[[1]]
+    time = result[[3]]$time
+    
+    risk = c()
+    # plot KM curves
+    for(i in 1:length(theta)){
+      if(theta[i]>quantile(theta, probs = 0.75)){
+        risk[i] = "High"
+      }else if(theta[i]<quantile(theta, probs=0.25)){
+        risk[i] = "Low"
+      }else{
+        risk[i] = "Middle"
+      }
+    }
+    
+    #high_risk = theta>median(theta)
+    surv_curve = data.frame(time, risk)
+    form <- formula(paste("Surv(time, rep(1, length(time))) ~ risk"))
+    eval(bquote(survfit(.(form),data=surv_curve)))
+  })
+  
+  output$survival_curve = renderPlot({
+    result <- calculate_theta()
+    theta = result[[1]]
+    time = result[[3]]$time
+    
+    risk = c()
+    # plot KM curves
+    for(i in 1:length(theta)){
+      if(theta[i]>quantile(theta, probs = 0.75)){
+        risk[i] = "High"
+      }else if(theta[i]<quantile(theta, probs=0.25)){
+        risk[i] = "Low"
+      }else{
+        risk[i] = "Middle"
+      }
+    }
+
+    #high_risk = theta>median(theta)
+    surv_curve = data.frame(time, risk)
+    #surv_test = survfit(, data = surv_curve)
+    survminer::ggsurvplot(fit = runSur(), data = surv_curve, conf.int = T)+labs(x = "Time to deliver(days)")
+  })
+  # output$theta_table<- renderDataTable({
+  #   result <- calculate_theta()
+  #   theta = data.table("Patient" = c(1:length(result[[1]])), "Predicted Risk Rank" = rank(desc(result[[1]])), "True Risk Rank" = rank(result[[3]][,1])) 
+  # })
+  # 
+  
+  # print c-index
+  output$cindex = renderText({
+    result = calculate_theta()
+    cindex_coxnnet = result[[2]]
+    cindex_ridge = result[[4]]
+    paste("C-index of the Cox-nnet model is :" , cindex_coxnnet, "\n C-index of the Cox-ph model is :", cindex_ridge)
+  })
+}
+)
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+```

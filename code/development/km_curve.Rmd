@@ -48,7 +48,7 @@ past_pe<-delivery_final_v9$past_pe
 theta<-as.numeric(df$V1)
 time<-as.numeric(df$time)
 
-df$class<-ifelse(df$V1>median(df$V1), "High Risk", "Low Risk")
+df$class<-ifelse(df$V1>median(df$V1), "High Risk Group", "Low Risk Group")
 
 p_theta=kmcurve(group=theta, name="theta", time=time)
 
@@ -95,6 +95,8 @@ stat.test<-df%>%
 stat.test
 
 data_base<-reshape(data, idvar="Feature", timevar="Class", direction="wide" )
+
+data$Feature<-factor(data$Feature, levels=c("Mean_Fetuses", "Mean_Depression", "Mean_NSAIDs", "Mean_Parity", "Mean_Antacids", "Mean_Hypertension", "Mean_Anxiety", "Mean_Benzodiazepine", "Mean_TypeIDiabetes", "Mean_TypeIIDiabetes"))
 
 ggplot(data, aes(fill=Class, y=Mean, x=Feature))+geom_bar(position="dodge", stat="identity")
 
