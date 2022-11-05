@@ -1,0 +1,42 @@
+```{r}
+library(dplyr)
+library(survival)
+library(glmnet)
+library(ggplot)
+library(caret)
+
+#Import UM dataset
+df=data_final_v7_Full
+df<-data.fram
+
+#5-fold cross-validation to generate 5 training/testing datasets (80/20)
+set.seed(123)
+data_training <- train(TimetoDiagnosis ~ ., data = df, method = "knn", 
+             tuneGrid = expand.grid(k=1:5),
+             trControl = trainControl(method = "LGOCV", p = 0.8, number = 1,
+                                      savePredictions = T))
+
+#build cox-ph model on each training set (5) and select features using lasso - glmnet package
+
+
+
+#test each of the 5 testing datasets on each respective model using predict package
+#print feature importance scores for each 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
